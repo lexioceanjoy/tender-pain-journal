@@ -12,7 +12,9 @@ The interface follows the **Lilac & Fig** direction: warm off-white space, soft 
 
 ### 1. Open Tender
 
-The home screen opens directly to **Today's check-in**. It never presents a login, upsell, or empty dashboard before the person can record something.
+The home screen opens to **Today**, a small launcher rather than the full form. **New check-in** starts a blank entry. When history exists, **Repeat last** starts a new entry using the latest pain locations, intensity, sensations, per-area differences, and visual refinements. It uses the current time and does not copy activity, sleep, stress, mood, cycle, medication, or notes.
+
+Persistent phone navigation keeps four jobs separate: **Today**, **History**, **Insights**, and **More**. The check-in itself is treated as a focused subtask of Today.
 
 ### 2. Mark what hurts
 
@@ -39,7 +41,7 @@ The body map must:
 
 ### 3. Rate intensity
 
-The only required detail after selecting a location is a 0–10 pain intensity. The scale displays the selected number and plain-language anchors: `none`, `mild`, `moderate`, `severe`, `worst`.
+The only required detail after selecting a location is a 0–10 pain intensity. The scale displays the selected number and plain-language anchors. A visible default may position the control, but a new entry cannot be saved until the person deliberately touches or operates the scale; this prevents an untouched default from becoming false data.
 
 When several areas are selected, this value applies to all of them by default. An optional **Do any areas feel different?** section allows the person to change intensity and sensation for only the exceptional areas. It never requires one form per area. Returning an area to **Use overall settings** removes the exception.
 
@@ -62,7 +64,7 @@ Recently used options should appear before the full catalog. Nothing in this sec
 
 ### 5. Save
 
-Saving gives a calm confirmation and returns to the current entry. It never claims the entry is medically normal, safe, or diagnostic.
+The primary Save action appears immediately after location and intensity, before optional context. If the person opens optional details and the primary action scrolls out of view, a compact contextual Save action appears above the bottom navigation. It disappears when the primary action is visible, so the basic path never presents competing buttons. Saving gives a calm confirmation and returns to Today. It never claims the entry is medically normal, safe, or diagnostic.
 
 The occurrence date and time default to now but remain directly editable, so a person can accurately record pain after an episode has passed.
 
@@ -113,7 +115,7 @@ The summary view asks the person to choose a date range and produces:
 
 The entry screen contains a compact link: **Urgent symptoms? Get help now.** It opens this exact text:
 
-> This app cannot assess urgent symptoms. Seek urgent medical care for new, severe, rapidly worsening, or worrying symptoms—especially new changes in bladder or bowel control, numbness around the groin/buttocks, or worsening weakness or difficulty walking. This is not a complete list.
+> This app cannot assess urgent symptoms. Seek urgent medical care for new, severe, rapidly worsening, or worrying symptoms—especially new changes in bladder or bowel control, numbness around the groin or buttocks, or worsening weakness or difficulty walking. These examples are not a complete list.
 
 The message is informational safety-netting, not an interactive screening tool. It remains accessible from summaries and exports.
 
@@ -134,3 +136,5 @@ The message is informational safety-netting, not an interactive screening tool. 
 3. Selecting an already selected region removes it.
 4. The visual map is usable with keyboard navigation and announces selected regions to assistive technology.
 5. Optional context never prevents saving a valid basic entry.
+6. A new entry cannot save an untouched intensity default.
+7. Repeat Last creates a new record at the current time and never copies one-off context or notes.

@@ -14,6 +14,7 @@ type Props = {
   defaultSensations: Sensation[];
   value: AreaOverrides;
   onChange: (value: AreaOverrides) => void;
+  onOpenChange?: (open: boolean) => void;
 };
 
 export function AreaDetails({
@@ -21,7 +22,8 @@ export function AreaDetails({
   defaultIntensity,
   defaultSensations,
   value,
-  onChange
+  onChange,
+  onOpenChange
 }: Props) {
   if (selectedRegions.length < 2) return null;
 
@@ -47,7 +49,7 @@ export function AreaDetails({
   }
 
   return (
-    <details className="area-details-panel">
+    <details className="area-details-panel" onToggle={(event) => onOpenChange?.(event.currentTarget.open)}>
       <summary>
         <span>Do any areas feel different?</span>
         <span>Optional</span>

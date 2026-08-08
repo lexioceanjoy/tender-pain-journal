@@ -9,6 +9,9 @@ Tender is now a working local-first prototype. Product decisions and architectur
 Implemented:
 
 - phone-first installable web-app shell;
+- task-based Today, History, Insights, and More navigation instead of one long scroll;
+- a basic location-and-intensity check-in designed for under 30 seconds;
+- Repeat Last for a familiar pain pattern without copying stale activity, medication, sleep, or notes;
 - attributed 74-region CHOIR front/back body map with upper/lower focus and two source outlines;
 - optional visual Tender detail map for SI-joint, sacrum, hip, glute, and upper-hamstring surface areas;
 - pain intensity and optional sensation, activity, sleep, stress, mood, cycle, medication, and notes;

@@ -34,9 +34,10 @@ const activityOptions = ['Long sitting', 'Walking', 'Workout', 'Lifting', 'Trave
 type Props = {
   value: ContextState;
   onChange: Dispatch<SetStateAction<ContextState>>;
+  onOpenChange?: (open: boolean) => void;
 };
 
-export function OptionalContext({ value, onChange }: Props) {
+export function OptionalContext({ value, onChange, onOpenChange }: Props) {
   function toggleSensation(option: Sensation) {
     onChange((current) => ({
       ...current,
@@ -56,7 +57,7 @@ export function OptionalContext({ value, onChange }: Props) {
   }
 
   return (
-    <details className="context-panel">
+    <details className="context-panel" onToggle={(event) => onOpenChange?.(event.currentTarget.open)}>
       <summary>Add context <span>Optional</span></summary>
 
       <fieldset>

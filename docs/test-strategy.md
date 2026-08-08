@@ -11,7 +11,7 @@ Tests prove important user behavior, not implementation details. Manual phone te
 | Unit | Validate small, deterministic rules | pain-score validation; export format; date-range calculations |
 | Component | Validate a feature in isolation | selecting and deselecting a body region; optional fields stay optional |
 | Integration | Validate features with local data | save an entry, reload, and see it in history |
-| End-to-end | Validate a real user journey | create an entry on a phone viewport, export it, import it again |
+| End-to-end | Validate a real user journey | create and reload an entry; repeat pain settings without stale context; move among the four tasks |
 | Manual accessibility | Validate what automation cannot fully judge | tap-target size, keyboard navigation, screen-reader labels, text contrast |
 
 ## Definition of done for each feature
@@ -21,3 +21,10 @@ Tests prove important user behavior, not implementation details. Manual phone te
 3. A phone-sized viewport is checked manually.
 4. Empty, error, and privacy-sensitive states are covered.
 5. The change is reviewed with the product goal, not only the code, in mind.
+
+## Iteration A release checks
+
+- Component/integration tests enforce the Today-first workflow and deliberate intensity confirmation.
+- Data tests enforce the Repeat Last privacy boundary between pain-specific settings and one-off context.
+- Playwright runs the core journeys in Pixel 7 and desktop Chrome profiles.
+- A human phone review still judges whether map targets are understandable and whether the basic path feels comfortably under 30 seconds.

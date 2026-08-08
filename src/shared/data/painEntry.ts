@@ -130,6 +130,21 @@ export function updatePainEntry(existing: PainEntry, input: PainEntryInput): Pai
   });
 }
 
+export function repeatPainEntryInput(entry: PainEntry, occurredAt = new Date().toISOString()): PainEntryInput {
+  return {
+    regions: [...entry.regions],
+    intensity: entry.intensity,
+    occurredAt,
+    sensations: entry.sensations ? [...entry.sensations] : undefined,
+    areaDetails: entry.areaDetails?.map((detail) => ({
+      regionId: detail.regionId,
+      intensity: detail.intensity,
+      sensations: detail.sensations ? [...detail.sensations] : undefined
+    })),
+    precisionAreas: entry.precisionAreas ? [...entry.precisionAreas] : undefined
+  };
+}
+
 export function getAreaDetails(entry: PainEntry, regionId: string) {
   const override = entry.areaDetails?.find((detail) => detail.regionId === regionId);
   return {

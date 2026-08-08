@@ -10,14 +10,16 @@ Pain can be intermittent and hard to describe during a clinical appointment. A p
 
 ## First-release outcome
 
-Someone can make a useful pain entry on their phone in under a minute, understand their own history, safely back it up, and prepare a non-diagnostic appointment summary.
+Someone can make a useful pain entry on their phone in under 30 seconds, repeat a familiar pain pattern in about 10 seconds, understand their own history, safely back it up, and prepare a non-diagnostic appointment summary.
 
 ## Agreed product decisions
 
 - The app is phone-first and installable as a web app.
 - Data is local to the device by default, with export/import backup.
 - The body map is fully visual: front and back silhouettes with granular, separately tappable regions. There is no freehand drawing in the first release.
-- Pain intensity, sensation, activity, sleep, mood, stress, menstrual-cycle context, medication, and notes are optional context. The minimum entry is intentionally short.
+- Location and a deliberately confirmed pain intensity are required. Sensation, activity, sleep, mood, stress, menstrual-cycle context, medication, and notes are optional.
+- The primary navigation is organized around four user tasks: Today, History, Insights, and More.
+- Repeat Last copies pain-specific settings into a new check-in, but never carries forward one-off context such as activity, sleep, medication, or notes.
 - Summaries distinguish recorded facts, rule-based observations, and optional AI-written narrative.
 - AI narrative must require clear, revocable consent and explain what leaves the device. It must not provide a diagnosis.
 - The app includes a compact expandable safety message; it is not a triage tool.
