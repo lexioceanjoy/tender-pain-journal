@@ -50,6 +50,14 @@ Run automated tests and a production build:
 npm run check
 ```
 
+## Run the optional local AI narrative
+
+1. Copy `.env.example` to `.env.local` and replace the placeholder with your own OpenAI API key. Never commit `.env.local`.
+2. Run `npm run dev:ai` instead of `npm run dev`.
+3. Open Insights, choose a date range with at least one check-in, review the privacy notice, and explicitly consent before generating.
+
+The normal `npm run dev` and GitHub Pages build remain local-only and do not expose an API key. The AI response is not automatically saved to the diary.
+
 ## Privacy boundary
 
 Tender makes no network request with health entries in its current mode. Records are stored in the browser's IndexedDB database. The app records the last backup date only on the same device; it never uploads the backup. The user must download backups themselves, because uninstalling or clearing browser data can otherwise remove the journal.
