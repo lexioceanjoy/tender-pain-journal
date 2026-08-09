@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import OpenAI from 'openai';
 import { ZodError } from 'zod';
-import { createAiNarrative } from './aiService.js';
+import { createAiNarrative, safeAiError } from './aiService.js';
 
 const port = Number(process.env.TENDER_AI_PORT ?? 8787);
 const maxBytes = 250_000;
@@ -29,7 +29,7 @@ createServer(async (request, response) => {
   } catch (error) {
     const clientError = error instanceof SyntaxError || error instanceof ZodError;
     response.writeHead(clientError ? 400 : 502).end(JSON.stringify({
-      error: clientError ? 'The selected diary data was invalid.' : 'The AI narrative could not be generated.'
+      error: clientError ? 'The selected diary data was invalid.' : safeAiError(error)
     }));
   }
 }).listen(port, '127.0.0.1', () => {

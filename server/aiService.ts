@@ -36,3 +36,26 @@ export async function createAiNarrative(
   if (!narrative) throw new Error('The AI service returned an empty summary.');
   return narrative;
 }
+
+type OpenAiFailure = {
+  status?: number;
+  code?: string;
+  type?: string;
+};
+
+export function safeAiError(error: unknown) {
+  const failure = error as OpenAiFailure;
+  if (failure.code === 'credit_balance_exhausted') {
+    return 'OpenAI API credits are required. Add credits in OpenAI billing, then try again.';
+  }
+  if (failure.code?.includes('spend_limit') || failure.type === 'insufficient_quota') {
+    return 'OpenAI API quota is unavailable. Check billing and spend limits, then try again.';
+  }
+  if (failure.status === 401 || failure.status === 403) {
+    return 'OpenAI could not authorize this API key. Check the key and its Model capabilities permission.';
+  }
+  if (failure.status === 404 || failure.code === 'model_not_found') {
+    return 'The configured OpenAI model is unavailable to this API project.';
+  }
+  return 'The AI narrative could not be generated.';
+}
