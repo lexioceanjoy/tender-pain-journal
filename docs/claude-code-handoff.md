@@ -19,7 +19,7 @@ This repository is the full source of truth for Tender, a personal, phone-first 
 | Published/default branch | `main` at `578891a` (`Ship Iteration A fast check-in workflow`) |
 | Public site | GitHub Pages, local-first app only |
 | AI prototype branch | `feat/iteration-b` at `834b055` plus this handoff commit |
-| AI branch worktree | `/Users/lexi/.codex/.chatgpt-projects/g-p-6a65bda850c0819186bc67c641f2b1ed/tender-iteration-b` |
+| AI branch checkout | `/Users/lexi/projects/tender-pain-journal-iteration-b` |
 
 `main` is stable, published, and should not be overwritten. Iteration B is intentionally not merged or deployed. It has a local AI server and must be reviewed with a real provider account before release.
 
