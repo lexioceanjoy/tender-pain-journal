@@ -52,7 +52,7 @@ npm run check
 
 ## Run the optional local AI narrative
 
-1. Copy `.env.example` to `.env.local` and replace the placeholder with your own OpenAI API key. Never commit `.env.local`.
+1. Copy `.env.example` to `.env.local`, set `TENDER_AI_PROVIDER` to `openai` or `anthropic`, and replace the matching placeholder with your own API key for that provider. Never commit `.env.local`.
 2. Run `npm run dev:ai` instead of `npm run dev`.
 3. Open Insights, choose a date range with at least one check-in, review the privacy notice, and explicitly consent before generating.
 

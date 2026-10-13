@@ -16,6 +16,7 @@
     "check": "npm run test && npm run build"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
     "@vitejs/plugin-react": "latest",
     "dexie": "latest",
     "openai": "^7.4.0",

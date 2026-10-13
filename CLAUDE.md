@@ -33,5 +33,5 @@ npm run test:e2e         # desktop and mobile Playwright journeys
 
 ## Secrets
 
-Copy `.env.example` to `.env.local`; never share, commit, or print that file. The current implementation is OpenAI-only and is intended for local testing, not GitHub Pages. A future provider abstraction should be introduced before adding Claude, Gemini, or another provider.
+Copy `.env.example` to `.env.local`; never share, commit, or print that file. The implementation supports OpenAI and Anthropic behind a shared `server/providers/` adapter interface (`TENDER_AI_PROVIDER` selects one, read once at server startup — never from request input), and is intended for local testing, not GitHub Pages. Adding another provider means writing a new adapter against that interface, not a one-off API call.
 
