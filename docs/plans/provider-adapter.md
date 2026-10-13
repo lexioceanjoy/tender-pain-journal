@@ -39,19 +39,23 @@ export interface AiProviderConfig {
 // half-filled consent box (e.g. an empty retentionSummary) is worse than
 // refusing to start. This schema is the startup-time gate for that floor:
 // non-empty, and (for the URL) syntactically well-formed. It cannot and
-// does not verify that either value is actually true — that privacyNoticeUrl
-// really points at the provider's current data-use page, or that
-// retentionSummary still matches the provider's current terms. A
-// syntactically valid but stale or wrong URL passes `.url()` and boots
-// fine. That gap is closed by a human pre-ship verification step (see Open
-// questions), not by this schema.
+// does not verify that privacyNoticeUrl is actually true — that it really
+// points at the provider's current data-retention page, not a dead or
+// stale one. A syntactically valid but wrong URL passes `.url()` and boots
+// fine; see ADR 0009's note that both providers' docs hosts moved recently,
+// so this needs periodic re-checking, not just a one-time implementation
+// check. retentionSummary carries a different, smaller risk: by design it
+// states no specific retention periods (see "Decisions locked" and ADR
+// 0009), only that retention is limited and can be longer in some cases,
+// with the provider's own page linked for specifics — so it can't itself
+// go stale the way a paraphrased day/year count could.
 export const providerConsentMetadataSchema = z.object({
   name: z.enum(['openai', 'anthropic']),
   /** Human-facing name for consent copy, e.g. "Anthropic". */
   displayName: z.string().min(1),
-  /** Link to that provider's current API data-use/retention page. */
+  /** Link to that provider's own, current data-retention page — carries all specifics. */
   privacyNoticeUrl: z.string().url(),
-  /** One or two accurate sentences on retention/training use, provider-specific. */
+  /** Stable, non-specific sentence: retention is limited, longer in some cases. No day/year counts — see ADR 0009. */
   retentionSummary: z.string().min(1),
   /** Name of the required server-side env var, e.g. "ANTHROPIC_API_KEY". */
   apiKeyEnvVar: z.string().min(1)
@@ -130,18 +134,21 @@ export const anthropicProvider: AiProvider = {
   name: 'anthropic',
   displayName: 'Anthropic',
   apiKeyEnvVar: 'ANTHROPIC_API_KEY',
-  // Both of these are intentionally left empty, symmetrically.
-  // providerConsentMetadataSchema only proves non-emptiness and (for the
-  // URL) syntactic validity — it cannot prove either value is *true*: that
-  // this is really Anthropic's current privacy/retention page, or that the
-  // retention sentence still matches Anthropic's current terms. A
-  // syntactically valid but wrong or stale URL would pass `.url()` and
-  // silently boot. assertProviderRegistryIsConsentReady() blocks boot on
-  // emptiness as a forcing function, but passing it is necessary, not
-  // sufficient — see the explicit pre-ship verification step in Open
-  // questions, which a human must still do by hand before this ships.
-  privacyNoticeUrl: '',
-  retentionSummary: '',
+  // Proposed strings — awaiting explicit sign-off (see ADR 0009's
+  // "Proposed retentionSummary strings" / "Proposed privacyNoticeUrl
+  // values" sections) before either is typed into real code. Shown here
+  // as the sketch's intended final values, not placeholders, but this
+  // plan does not commit them on its own authority.
+  // retentionSummary states no specific retention period by design — see
+  // "Decisions locked" and ADR 0009's rationale (a provider's terms change
+  // on their own schedule; a paraphrased number goes stale the moment they
+  // do). privacyNoticeUrl carries the actual detail and was verified live
+  // (200 OK, not a dead end) on 2026-10-13 — see ADR 0009 for the
+  // verification record and the note that both providers' docs hosts moved
+  // recently, so this needs re-checking before public deployment, not just
+  // once at implementation time.
+  privacyNoticeUrl: 'https://privacy.claude.com/en/articles/7996866-how-long-do-you-store-personal-data',
+  retentionSummary: 'Anthropic retains submitted data for a limited period, which may be longer in specific cases such as content flagged for safety review. See Anthropic’s current data policy, linked below, for exact terms.',
 
   async createNarrative(payload, safetyId, config) {
     const client = new Anthropic({ apiKey: config.apiKey });
@@ -196,8 +203,18 @@ export const anthropicProvider: AiProvider = {
 
 `server/providers/openaiProvider.ts` is the existing `server/aiService.ts`
 logic (the `responses.create` call, `store: false`, `safety_identifier`,
-`reasoning`, and `safeAiError`) moved behind the same `AiProvider` shape, so
-behavior for existing OpenAI users doesn't change.
+`reasoning`, and `safeAiError`) moved behind the same `AiProvider` shape —
+the narrative-generation behavior for existing OpenAI users doesn't change.
+Its consent metadata does change, from the plan's new approach (see
+"Decisions locked" and ADR 0009): `displayName: 'OpenAI'`,
+`privacyNoticeUrl: 'https://developers.openai.com/api/docs/guides/your-data#default-usage-policies-by-endpoint'`
+(the current location after a 301 from the URL hardcoded in
+`AiNarrativePanel.tsx:48` today — that old URL should be updated to this
+one, not left to redirect), and
+`retentionSummary: 'OpenAI retains submitted data for a limited period, which may be longer in specific cases such as content flagged for safety review. See OpenAI’s current data policy, linked below, for exact terms.'`
+— same structure as the Anthropic adapter's, deliberately, per ADR 0009's
+finding that the two providers' terms aren't materially different in
+shape.
 
 `server/aiService.ts` becomes provider-agnostic orchestration:
 
@@ -282,7 +299,7 @@ No changes to `src/shared/data/painEntry.ts`, `src/features/insights/`, `src/fea
 | --- | --- | --- | --- |
 | `TENDER_AI_PROVIDER` | server (`.env.local`) | always, to run `npm run dev:ai` | `'openai' \| 'anthropic'`. **No default.** Forces an explicit choice rather than silently picking one, matching the handoff doc's "do not simply swap" instruction. Read exactly once, at startup — **never** accepted from request headers, query params, or body. This is a locked-in security property, not just simplicity: a per-request provider selector would let a client influence where health data is routed. Unset or unknown value → `resolveProvider()` throws at startup; the process exits before `listen()` and logs a clear startup error naming the problem. It never silently guesses a provider, and — because the failure is at startup, not per-request — there is no partially-running server that could return a request-time 503 for this case (see Fallback behavior, case 2). |
 | `ANTHROPIC_API_KEY` | server only | `TENDER_AI_PROVIDER=anthropic` | Never read by browser code; same handling as `OPENAI_API_KEY` today (presence-checked, value never logged or echoed). |
-| `ANTHROPIC_MODEL` | server only | optional | Defaults to a pinned Claude model id (e.g. `claude-sonnet-5`) chosen at implementation time, mirroring `OPENAI_MODEL`'s default-to-`gpt-5.6-sol` pattern. |
+| `ANTHROPIC_MODEL` | server only | optional | Defaults to the pinned model id `claude-sonnet-5-5` (verified against Anthropic's current models overview, 2026-10-13 — see Decisions locked). Not an alias: per Anthropic's docs, dateless IDs from the 4.6 generation on are themselves pinned snapshots, so narrative quality won't shift under this app between runs. Mirrors `OPENAI_MODEL`'s default-to-`gpt-5.6-sol` pattern. |
 | `OPENAI_API_KEY`, `OPENAI_MODEL` | server only | `TENDER_AI_PROVIDER=openai` | Unchanged from today. |
 | `TENDER_AI_PORT` | server only | optional | Unchanged. |
 
@@ -308,12 +325,18 @@ reason, `process.env.ANTHROPIC_API_KEY` reads as present even when
 `process.env[apiKeyEnvVar]` directly would report `ready: true` from that
 stray export, falsely telling the user the provider is configured when
 `.env.local` — the file the consent copy and this whole design assume is
-authoritative — has nothing in it. The implementation needs to read
-`.env.local`'s contents as the source of truth for `ready` (e.g. parsing
-the file directly, or otherwise distinguishing "set by this file" from
-"present in `process.env` for any reason") rather than trusting ambient
-`process.env` presence; the exact mechanism is implementation-time work, not
-decided here.
+authoritative — has nothing in it. **This is in scope for, and must ship
+in, the same commit that adds `/api/ai-provider-info` — it is not
+deferrable to a later PR.** A `ready` that reports `true` on one machine
+(because of a stray ambient export) and `false` for everyone else running
+the exact same `.env.local` is not a minor polish item; it's the thing the
+route exists to report accurately. The
+implementation needs to read `.env.local`'s contents as the source of
+truth for `ready` (e.g. parsing the file directly, or otherwise
+distinguishing "set by this file" from "present in `process.env` for any
+reason") rather than trusting ambient `process.env` presence. Only the
+exact parsing mechanism (which library/approach) is left open — see Open
+question #5 — the requirement itself is locked in.
 
 ## Consent and payload-minimization path
 
@@ -327,17 +350,25 @@ Unchanged and provider-agnostic, by design:
 - `aiSummaryRequestSchema` (server-side re-validation in `aiService.ts`)
   stays as the single minimization/shape enforcement point regardless of
   provider — both adapters receive the same validated `AiSummaryRequest`.
-- What *does* change: `AiNarrativePanel.tsx`'s consent copy must name the
-  actual active provider and link to *that* provider's current data-use
-  page, not a hardcoded OpenAI one. It fetches `/api/ai-provider-info` once
-  (e.g. on mount, before the consent checkbox is interactive) and renders
-  `displayName`, `privacyNoticeUrl`, and `retentionSummary` from that
-  response. If `ready` is `false`, the panel disables the Generate action
+- What *does* change: `AiNarrativePanel.tsx`'s consent copy is rewritten,
+  not just re-pointed at a different provider name. It fetches
+  `/api/ai-provider-info` once (e.g. on mount, before the consent checkbox
+  is interactive) and renders `displayName`, `privacyNoticeUrl`, and
+  `retentionSummary` from that response — but the copy itself now splits
+  into two kinds of claim (see ADR 0009, "New consent-panel copy"): what
+  *we* assert with authority because we control it (exactly what leaves
+  the device, that it's per-request and consent-gated, which provider
+  receives it by name, and that Insights/export work without it), versus
+  what the *provider* says about their own retention/training terms, which
+  stays generic in our copy (no specific day/year counts — those live only
+  on the provider's own page via `privacyNoticeUrl`) precisely because we
+  don't control the provider's policy and can't keep a paraphrased number
+  current. If `ready` is `false`, the panel disables the Generate action
   and explains why (e.g. "the configured AI provider isn't available right
   now") *before* the consent checkbox is ever presented as actionable —
   consent should not be solicited for a request that cannot succeed. The
   consent checkbox itself stays unchecked-by-default and request-specific,
-  and "what will leave this device" language is unchanged because the
+  and the payload-shape claim in the new copy is unchanged because the
   payload shape doesn't change per provider.
 - **Consent is provider-scoped and never carries across a provider change.**
   Because consent is already unchecked-by-default and request-specific (one
@@ -358,21 +389,25 @@ Unchanged and provider-agnostic, by design:
   Batches storage), (b) `metadata.user_id` as the closest analog to
   `safety_identifier` for abuse monitoring without sending real user
   identity (continue using the existing random `tenderSafetyId()` value).
-  The exact current retention/training-use wording for the Claude API must
-  be verified against Anthropic's live documentation before it goes into
-  `retentionSummary` and the consent notice — this is called out under Open
-  questions rather than asserted here.
+  Anthropic's and OpenAI's current retention/training terms were both
+  researched live (ADR 0009) to confirm the generic `retentionSummary`
+  wording is a true statement for both providers and to pick a correct,
+  live `privacyNoticeUrl` for each — but neither provider's specific terms
+  are paraphrased into the app's copy; see "Decisions locked" below for why.
 - `providerConsentMetadataSchema.parse()` runs for every registered provider
   at server startup (`assertProviderRegistryIsConsentReady()`). An empty
-  `retentionSummary` or `privacyNoticeUrl` — exactly the placeholder state
-  the sketch ships with today, for both fields symmetrically — fails
-  validation and the server refuses to boot. This is deliberate: the
-  failure mode for incomplete consent copy should be "the local AI server
-  won't start," not "the panel renders a disclosure with a blank where the
-  retention sentence or privacy link should be." It's a presence/shape
-  floor, not a truth check — see the pre-ship verification step in Open
-  questions for what the schema can't catch (e.g. a syntactically valid but
-  wrong or stale `privacyNoticeUrl`).
+  `retentionSummary` or `privacyNoticeUrl` fails validation and the server
+  refuses to boot — unchanged by the copy-approach revision above. This is
+  deliberate: the failure mode for incomplete consent copy should be "the
+  local AI server won't start," not "the panel renders a disclosure with a
+  blank where the retention sentence or privacy link should be." It's a
+  presence/shape floor, not a truth check: a syntactically valid but dead
+  or stale `privacyNoticeUrl` still passes `.url()` and boots fine. Because
+  `retentionSummary` no longer states specifics, the main ongoing risk here
+  is link rot on `privacyNoticeUrl`, not a stale number in our own
+  sentence — ADR 0009 flags that both providers' docs hosts moved recently
+  and recommends re-checking both URLs before any public deployment, not
+  just once at implementation time.
 
 ## Fallback behavior when the provider is unavailable or consent is absent
 
@@ -471,6 +506,11 @@ Mirrors the existing `aiService.test.ts` / `aiSummary.test.ts` /
     required field) causes `providerConsentMetadataSchema.parse()` to
     throw — proving the "won't boot on incomplete consent copy" guarantee
     without needing to actually crash the process in a test.
+  - **does not** assert that either real provider's `retentionSummary`
+    contains any specific day/year count — intentionally, since the
+    strings are designed not to have one (see ADR 0009); a test asserting
+    a specific number would just reintroduce the staleness problem the
+    copy change was meant to remove, one layer down in the test suite.
   - `resolveProvider(undefined)` and `resolveProvider('something-else')`
     both throw; `resolveProvider('anthropic')` returns the Anthropic
     adapter.
@@ -491,12 +531,26 @@ Mirrors the existing `aiService.test.ts` / `aiSummary.test.ts` /
   returns the parsed metadata including `ready`; fetch rejection or non-2xx
   returns the generic fallback object with `ready: false`, never throws.
 - `src/features/ai-summary/AiNarrativePanel.test.tsx` — extend existing
-  cases to assert: panel renders the fetched provider's `displayName` and
-  `privacyNoticeUrl` in consent copy; when `providerInfo` fetch fails, panel
-  renders generic fallback copy instead of a stale/wrong vendor name; when
-  `ready` is `false`, Generate is disabled and an explanatory message is
-  shown even if consent is checked; existing consent-gating, revoke, and
-  error-state tests are otherwise unchanged.
+  cases to assert:
+  - the panel renders `privacyNoticeUrl` as an actual link element (an
+    `<a>` with that `href`, not just the URL string somewhere in the text)
+    — this is the field that now carries the specific retention/training
+    detail, so it must be a followable link, not decorative text;
+  - the panel renders the app's own-behavior copy (what leaves the device,
+    that it's per-request/consent-gated, which provider receives it by
+    name, that Insights/export work without it) **regardless of which
+    provider is active** — i.e. this copy's presence and wording doesn't
+    change between the OpenAI and Anthropic fixtures, only the
+    interpolated `displayName`/`privacyNoticeUrl` do;
+  - the panel renders the fetched provider's `displayName` and
+    `retentionSummary` text, and that text does not contain a digit (a
+    cheap, durable proxy for "no specific day/year count leaked back in");
+  - when `providerInfo` fetch fails, panel renders generic fallback copy
+    instead of a stale/wrong vendor name;
+  - when `ready` is `false`, Generate is disabled and an explanatory
+    message is shown even if consent is checked;
+  - existing consent-gating, revoke, and error-state tests are otherwise
+    unchanged.
 - No change expected to `src/features/ai-summary/aiSummary.test.ts` — the
   minimized-payload builder doesn't change.
 - Manual/e2e: no new Playwright coverage is proposed here — `tests/e2e/`
@@ -528,34 +582,58 @@ re-litigate:
 - **Consent never carries across a provider change.** Already implied by
   the existing per-request, unchecked-by-default consent design, but ADR
   0009 must state it as an explicit invariant (see Consent section above).
+- **`ANTHROPIC_MODEL` defaults to Claude Sonnet, not Haiku.** This is a
+  single-user local-dev feature, so per-call cost is negligible, while the
+  task — a ~250-word clinician-facing narrative that must stay
+  non-diagnostic while summarizing messy symptom data — is tone-sensitive
+  in exactly the way smaller models tend to slip. The pinned id is
+  `claude-sonnet-5-5` (verified against Anthropic's live models overview,
+  2026-10-13, not assumed from memory — see
+  `docs/decisions/0009-anthropic-provider-adapter.md`). Haiku
+  (`claude-haiku-5-5`) is the documented cheaper alternative, worth testing
+  during the manual quality review if cost ever becomes a real constraint.
+- **`ready` must be computed from `.env.local`, never from ambient
+  `process.env`, and this ships in the same commit as
+  `/api/ai-provider-info`.** Not a follow-up item — see Config/env surface
+  above for why an ambient export makes this a correctness bug, not a
+  nice-to-have.
+- **`retentionSummary` never states a specific retention period, for
+  either provider.** A provider's retention/training terms are their own
+  policy, changeable on their own schedule and outside our control; a
+  paraphrased day/year count in our copy goes stale the moment their
+  policy changes, making us the source of a false claim about a third
+  party we don't control. `retentionSummary` instead states only that
+  retention is limited and can be longer in specific cases (e.g. flagged
+  content), under two sentences, identical in structure for both
+  providers; `privacyNoticeUrl` carries the actual current detail by
+  linking to the provider's own page. What the consent panel states with
+  specificity is *our own* behavior instead — see the new consent-panel
+  copy in ADR 0009 and ADR 0009's "Decision" section for the full
+  rationale.
 
 ## Open questions
 
-1. **Exact current Anthropic retention/training-use wording, and an
-   explicit pre-ship verification step for both consent fields.** Both
-   `retentionSummary` and `privacyNoticeUrl` are left empty in the sketch on
-   purpose, symmetrically — the startup schema refuses to boot until both
-   are filled in. But passing the schema only proves non-emptiness (and,
-   for the URL, syntactic validity); it cannot prove either value is
-   *true*. ADR 0008's OpenAI wording ("data is not used for training unless
-   the account opts in; default safety-monitoring logs may retain content
-   for up to 30 days") must have a verified Anthropic counterpart pulled
-   from Anthropic's current API/commercial terms at implementation time —
-   not invented or copied from OpenAI's terms — and `privacyNoticeUrl` must
-   be hand-checked to actually resolve to Anthropic's current, correct
-   data-use page, not just be well-formed. This plan treats that check as a
-   required manual step before merge/deploy (alongside the handoff doc's
-   existing real-key/narrative-quality review), not something the schema
-   can automate: there is no proposal here to fetch the URL at boot to
-   verify it resolves, since that would make local dev startup depend on
-   network access for no safety benefit (the content could still be wrong
-   even if the URL resolves).
-2. **Anthropic model id and pricing tier to default to.** Needs an explicit
-   choice (e.g. a Claude Sonnet/Haiku model) balancing narrative quality
-   for a ~250-word clinician-facing summary against local-dev cost; the
-   product owner should confirm before `ANTHROPIC_MODEL`'s default is
-   picked.
-3. **Does a 1024-token ceiling actually avoid triggering the truncation
+1. **Human sign-off on the proposed `retentionSummary` strings and new
+   consent-panel copy, before either goes into code.** The approach is
+   locked in (see Decisions locked: no specific retention periods in our
+   copy, ever), and the research and proposed strings are done — see
+   `docs/decisions/0009-anthropic-provider-adapter.md` for: verbatim
+   quotes/URLs/read-dates for both providers' retention and training terms
+   (pulled live on 2026-10-13, including each provider's flagged-content
+   carve-out, kept there as internal reference and explicitly never
+   entered into user-facing copy), the two proposed `retentionSummary`
+   strings (one per provider, identical structure, no day/year counts),
+   verified-live `privacyNoticeUrl` values for both adapters, and the new
+   own-behavior consent-panel copy (what leaves the device, per-request
+   consent, provider named, Insights/export work without it). What's still
+   open: you need to read and approve the actual strings before they're
+   typed into `openaiProvider.ts` / `anthropicProvider.ts` / the panel —
+   this plan does not do that unilaterally. There is still no proposal to
+   fetch `privacyNoticeUrl` at boot to verify it resolves, since that would
+   make local dev startup depend on network access for no safety benefit;
+   instead ADR 0009 recommends a manual re-check of both URLs before any
+   public deployment, since both providers' docs hosts moved recently.
+2. **Does a 1024-token ceiling actually avoid triggering the truncation
    guard in practice?** The OpenAI adapter constrains length via
    `reasoning.effort`/`text.verbosity`; the Anthropic adapter now rejects
    on `stop_reason === 'max_tokens'` instead of silently truncating, which
@@ -566,18 +644,18 @@ re-litigate:
    manual quality review step, not assumed from the sketch; if truncation
    failures turn out to be common, the ceiling (not the 250-word
    instruction) should move first.
-4. **`/api/ai-provider-info` route naming/shape** — confirm this doesn't
+3. **`/api/ai-provider-info` route naming/shape** — confirm this doesn't
    collide with any planned route, and that returning provider name +
    privacy link + retention summary + `ready` (and nothing else) is the
    right and complete non-secret surface for the panel to render correct
    copy and disable Generate appropriately.
-5. **Exact mechanism for computing `ready` from `.env.local` rather than
-   ambient `process.env`.** As described in Config/env surface, a stray
-   shell-exported variable sharing a key's name can make a naive
-   `process.env[apiKeyEnvVar]` check falsely report `ready: true`. Options
-   include parsing `.env.local` directly (e.g. with `dotenv`'s parse
-   function) into an explicit config object rather than reading it back out
-   of `process.env`, or some other way of tagging "this value came from
+4. **Exact mechanism for computing `ready` from `.env.local` rather than
+   ambient `process.env`.** The *requirement* is locked in and in scope for
+   the same commit as `/api/ai-provider-info` (see Decisions locked and
+   Config/env surface) — this question is only about *how*: options include
+   parsing `.env.local` directly (e.g. with `dotenv`'s parse function) into
+   an explicit config object rather than reading it back out of
+   `process.env`, or some other way of tagging "this value came from
    `.env.local`" distinctly from "this value is merely present." Not
    resolved here — needs a concrete choice at implementation time.
 
