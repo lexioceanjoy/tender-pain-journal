@@ -1,5 +1,6 @@
 import type { PainEntry } from '../../shared/data/painEntry';
 import { BackupPanel } from '../backup/BackupPanel';
+import { ExportPanel } from '../export/ExportPanel';
 
 type Props = {
   entries: PainEntry[];
@@ -20,6 +21,7 @@ export function MoreScreen({ entries, onImport, onSafetyOpen }: Props) {
         <span>Urgent symptoms? Get help now</span><span aria-hidden="true">›</span>
       </button>
       <BackupPanel entries={entries} onImport={onImport} />
+      <ExportPanel entries={entries} />
       <div className="more-section attribution-note">
         <h3>About the map</h3>
         <p>Tender uses the CHOIR Body Map for patient-reported surface location. It does not identify a diagnosis or underlying structure.</p>
