@@ -2,11 +2,12 @@
 
 ## Status
 
-Proposed. Blocks merge of the provider-adapter implementation described in
-`docs/plans/provider-adapter.md` until the proposed `retentionSummary`
-strings and consent-panel copy below are reviewed and approved by a human,
-per that plan's Open Question #1. This ADR currently records research and
-proposed copy only — no provider code exists yet.
+Accepted. The `retentionSummary` strings, `privacyNoticeUrl` values, and
+new consent-panel copy below were reviewed and approved 2026-10-13,
+resolving the plan's Open Question #1. No provider code exists yet — this
+ADR and `docs/plans/provider-adapter.md` remain planning documents;
+implementation still needs to happen and be tested with a real Anthropic
+key before any merge, per `docs/claude-code-handoff.md` and `CLAUDE.md`.
 
 ## Decision (carried from the plan, restated here per the plan's own
 instruction that ADR 0009 state it explicitly)

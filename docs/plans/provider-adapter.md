@@ -610,30 +610,16 @@ re-litigate:
   specificity is *our own* behavior instead — see the new consent-panel
   copy in ADR 0009 and ADR 0009's "Decision" section for the full
   rationale.
+- **The proposed `retentionSummary` strings, `privacyNoticeUrl` values,
+  and new consent-panel copy (ADR 0009) are approved, 2026-10-13.** This
+  resolves what was Open Question #1 in earlier revisions of this plan.
+  They can be typed into `openaiProvider.ts` / `anthropicProvider.ts` /
+  `AiNarrativePanel.tsx` as-is at implementation time; no further sign-off
+  on the copy itself is needed before that happens.
 
 ## Open questions
 
-1. **Human sign-off on the proposed `retentionSummary` strings and new
-   consent-panel copy, before either goes into code.** The approach is
-   locked in (see Decisions locked: no specific retention periods in our
-   copy, ever), and the research and proposed strings are done — see
-   `docs/decisions/0009-anthropic-provider-adapter.md` for: verbatim
-   quotes/URLs/read-dates for both providers' retention and training terms
-   (pulled live on 2026-10-13, including each provider's flagged-content
-   carve-out, kept there as internal reference and explicitly never
-   entered into user-facing copy), the two proposed `retentionSummary`
-   strings (one per provider, identical structure, no day/year counts),
-   verified-live `privacyNoticeUrl` values for both adapters, and the new
-   own-behavior consent-panel copy (what leaves the device, per-request
-   consent, provider named, Insights/export work without it). What's still
-   open: you need to read and approve the actual strings before they're
-   typed into `openaiProvider.ts` / `anthropicProvider.ts` / the panel —
-   this plan does not do that unilaterally. There is still no proposal to
-   fetch `privacyNoticeUrl` at boot to verify it resolves, since that would
-   make local dev startup depend on network access for no safety benefit;
-   instead ADR 0009 recommends a manual re-check of both URLs before any
-   public deployment, since both providers' docs hosts moved recently.
-2. **Does a 1024-token ceiling actually avoid triggering the truncation
+1. **Does a 1024-token ceiling actually avoid triggering the truncation
    guard in practice?** The OpenAI adapter constrains length via
    `reasoning.effort`/`text.verbosity`; the Anthropic adapter now rejects
    on `stop_reason === 'max_tokens'` instead of silently truncating, which
@@ -644,12 +630,12 @@ re-litigate:
    manual quality review step, not assumed from the sketch; if truncation
    failures turn out to be common, the ceiling (not the 250-word
    instruction) should move first.
-3. **`/api/ai-provider-info` route naming/shape** — confirm this doesn't
+2. **`/api/ai-provider-info` route naming/shape** — confirm this doesn't
    collide with any planned route, and that returning provider name +
    privacy link + retention summary + `ready` (and nothing else) is the
    right and complete non-secret surface for the panel to render correct
    copy and disable Generate appropriately.
-4. **Exact mechanism for computing `ready` from `.env.local` rather than
+3. **Exact mechanism for computing `ready` from `.env.local` rather than
    ambient `process.env`.** The *requirement* is locked in and in scope for
    the same commit as `/api/ai-provider-info` (see Decisions locked and
    Config/env surface) — this question is only about *how*: options include
