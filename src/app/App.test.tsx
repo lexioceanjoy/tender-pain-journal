@@ -68,6 +68,27 @@ describe('App', () => {
     expect(screen.getByText('That’s enough for a useful check-in. Details below are optional.')).toBeInTheDocument();
   });
 
+  it('requests persistent storage only after the first successful save, never on mount', async () => {
+    const persist = vi.fn().mockResolvedValue(true);
+    const originalStorage = Object.getOwnPropertyDescriptor(navigator, 'storage');
+    Object.defineProperty(navigator, 'storage', { value: { persist }, configurable: true });
+
+    try {
+      await renderApp();
+      expect(persist).not.toHaveBeenCalled();
+
+      const user = await beginCheckIn();
+      await user.click(screen.getByRole('button', { name: 'Left lower back' }));
+      fireEvent.change(screen.getByRole('slider', { name: 'Pain intensity' }), { target: { value: '6' } });
+      await user.click(screen.getByRole('button', { name: 'Save check-in' }));
+
+      await waitFor(() => expect(persist).toHaveBeenCalledOnce());
+    } finally {
+      if (originalStorage) Object.defineProperty(navigator, 'storage', originalStorage);
+      else delete (navigator as { storage?: unknown }).storage;
+    }
+  });
+
   it('offers optional area-specific detail only when several areas are selected', async () => {
     await renderApp();
     const user = await beginCheckIn();

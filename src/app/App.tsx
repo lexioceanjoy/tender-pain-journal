@@ -8,6 +8,7 @@ import { MoreScreen } from '../features/settings/MoreScreen';
 import { TodayScreen } from '../features/today/TodayScreen';
 import { deletePainEntry, listPainEntries, mergePainEntries, savePainEntry } from '../shared/data/database';
 import { createPainEntry, updatePainEntry, type PainEntry, type PainEntryInput } from '../shared/data/painEntry';
+import { requestPersistentStorageOnce } from '../shared/storage/persistentStorage';
 import { navigateTo, routeFromHash, type AppRoute } from './routes';
 
 export function App() {
@@ -92,6 +93,11 @@ export function App() {
       await savePainEntry(entry);
       setEntries((current) => [...current.filter((item) => item.id !== entry.id), entry]
         .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)));
+      // Only ever actually asks the browser once (see
+      // requestPersistentStorageOnce) — safe to call after every save.
+      // Deliberately not on mount/page load: the first ask should follow
+      // a real save, not just opening the app.
+      void requestPersistentStorageOnce();
       const wasEditing = draft.mode === 'edit';
       startNew();
       setSaveState('saved');

@@ -1,6 +1,7 @@
 import type { PainEntry } from '../../shared/data/painEntry';
 import { BackupPanel } from '../backup/BackupPanel';
 import { ExportPanel } from '../export/ExportPanel';
+import { StorageStatusLine } from './StorageStatusLine';
 
 type Props = {
   entries: PainEntry[];
@@ -26,6 +27,7 @@ export function MoreScreen({ entries, onImport, onSafetyOpen }: Props) {
         <h3>About the map</h3>
         <p>Tender uses the CHOIR Body Map for patient-reported surface location. It does not identify a diagnosis or underlying structure.</p>
       </div>
+      <StorageStatusLine />
     </section>
   );
 }
