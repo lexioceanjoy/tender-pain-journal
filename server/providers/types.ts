@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { AiSummaryRequest } from '../../src/features/ai-summary/aiSummary.js';
+import type { AiSummaryRequest } from '../../src/features/ai-summary/aiSummarySchema.js';
 
 export type ProviderName = 'openai' | 'anthropic';
 

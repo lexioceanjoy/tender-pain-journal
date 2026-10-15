@@ -1,4 +1,4 @@
-import { aiSummaryRequestSchema } from '../src/features/ai-summary/aiSummary.js';
+import { aiSummaryRequestSchema } from '../src/features/ai-summary/aiSummarySchema.js';
 import type { AiProvider, AiProviderConfig } from './providers/types.js';
 
 export async function createAiNarrative(
