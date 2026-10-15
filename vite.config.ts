@@ -6,10 +6,20 @@ declare const process: { env: Record<string, string | undefined> };
 
 export default defineConfig({
   base: process.env.BASE_PATH ?? '/',
+  server: {
+    proxy: { '/api': 'http://127.0.0.1:8787' }
+  },
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: {
+        // generateSW registers a catch-all NavigationRoute to index.html
+        // by default. Without this, a direct navigation to an /api/*
+        // path (e.g. typing it in the address bar) gets served the
+        // cached app shell instead of reaching the Vercel function.
+        navigateFallbackDenylist: [/^\/api\//]
+      },
       manifest: {
         name: 'Tender — private pain journal',
         short_name: 'Tender',

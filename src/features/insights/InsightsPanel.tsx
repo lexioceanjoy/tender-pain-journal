@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import type { PainEntry } from '../../shared/data/painEntry';
 import { appointmentReportFilename, buildAppointmentReport } from '../reports/appointmentReport';
 import { buildInsights } from './insights';
+import { AiNarrativePanel } from '../ai-summary/AiNarrativePanel';
 
 export function InsightsPanel({ entries }: { entries: PainEntry[] }) {
   const [from, setFrom] = useState(() => dateDaysAgo(29));
@@ -59,18 +60,18 @@ export function InsightsPanel({ entries }: { entries: PainEntry[] }) {
             <button type="button" onClick={downloadAppointmentSummary}>Download appointment summary</button>
             <p>A plain-text report you can read first, then choose whether to share. Nothing is sent automatically.</p>
           </div>
-          <div className="ai-placeholder">
-            <strong>AI narrative is off</strong>
-            <p>Your records have stayed on this device. A later opt-in step can turn selected observations into an appointment summary after explaining what would be shared.</p>
-          </div>
+          <AiNarrativePanel entries={summary.entries} from={from} to={to} />
         </>
       )}
     </section>
   );
 }
 
-function dateDaysAgo(days: number) {
+export function dateDaysAgo(days: number) {
   const date = new Date();
   date.setDate(date.getDate() - days);
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }

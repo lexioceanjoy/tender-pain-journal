@@ -1,7 +1,12 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { listPainEntries, savePainEntry } from '../shared/data/database';
+import { deletePainEntry, listPainEntries, savePainEntry } from '../shared/data/database';
+import {
+  buildDemoEntries, getSeededDemoIds, hasDemoDataDecisionBeenMade,
+  recordDemoCleared, recordDemoSeeded
+} from '../shared/data/demoData';
+import { createPainEntry } from '../shared/data/painEntry';
 import { App } from './App';
 
 vi.mock('../shared/data/database', () => ({
@@ -11,6 +16,18 @@ vi.mock('../shared/data/database', () => ({
   savePainEntry: vi.fn().mockResolvedValue(undefined)
 }));
 
+// Seeding is covered by its own describe block below with the real
+// buildDemoEntries/recordDemoSeeded; every other test in this file treats
+// demo data as "already decided" so an empty mocked database renders as
+// a genuinely empty, unseeded Today screen.
+vi.mock('../shared/data/demoData', () => ({
+  buildDemoEntries: vi.fn().mockReturnValue([]),
+  getSeededDemoIds: vi.fn().mockReturnValue([]),
+  hasDemoDataDecisionBeenMade: vi.fn().mockReturnValue(true),
+  recordDemoCleared: vi.fn(),
+  recordDemoSeeded: vi.fn()
+}));
+
 describe('App', () => {
   let intersectionCallback: IntersectionObserverCallback;
 
@@ -18,6 +35,12 @@ describe('App', () => {
     window.history.replaceState(null, '', '/');
     vi.mocked(listPainEntries).mockResolvedValue([]);
     vi.mocked(savePainEntry).mockClear();
+    vi.mocked(deletePainEntry).mockClear();
+    vi.mocked(buildDemoEntries).mockReset().mockReturnValue([]);
+    vi.mocked(getSeededDemoIds).mockReset().mockReturnValue([]);
+    vi.mocked(recordDemoSeeded).mockClear();
+    vi.mocked(recordDemoCleared).mockClear();
+    vi.mocked(hasDemoDataDecisionBeenMade).mockReturnValue(true);
     vi.stubGlobal('IntersectionObserver', class {
       constructor(callback: IntersectionObserverCallback) {
         intersectionCallback = callback;
@@ -66,6 +89,27 @@ describe('App', () => {
     fireEvent.change(screen.getByRole('slider', { name: 'Pain intensity' }), { target: { value: '6' } });
     expect(screen.getByRole('button', { name: 'Save check-in' })).toBeEnabled();
     expect(screen.getByText('That’s enough for a useful check-in. Details below are optional.')).toBeInTheDocument();
+  });
+
+  it('requests persistent storage only after the first successful save, never on mount', async () => {
+    const persist = vi.fn().mockResolvedValue(true);
+    const originalStorage = Object.getOwnPropertyDescriptor(navigator, 'storage');
+    Object.defineProperty(navigator, 'storage', { value: { persist }, configurable: true });
+
+    try {
+      await renderApp();
+      expect(persist).not.toHaveBeenCalled();
+
+      const user = await beginCheckIn();
+      await user.click(screen.getByRole('button', { name: 'Left lower back' }));
+      fireEvent.change(screen.getByRole('slider', { name: 'Pain intensity' }), { target: { value: '6' } });
+      await user.click(screen.getByRole('button', { name: 'Save check-in' }));
+
+      await waitFor(() => expect(persist).toHaveBeenCalledOnce());
+    } finally {
+      if (originalStorage) Object.defineProperty(navigator, 'storage', originalStorage);
+      else delete (navigator as { storage?: unknown }).storage;
+    }
   });
 
   it('offers optional area-specific detail only when several areas are selected', async () => {
@@ -134,5 +178,42 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'Urgent help' }));
     expect(screen.getByRole('heading', { name: 'When to get urgent help' })).toBeInTheDocument();
     expect(screen.getByText(/These examples are not a complete list/)).toBeInTheDocument();
+  });
+
+  it('seeds demo entries on first load, but only when storage is empty and no decision has been recorded yet', async () => {
+    const demoEntry = createPainEntry({ regions: ['choir-b23'], intensity: 6, occurredAt: '2026-10-01T09:00:00.000Z' });
+    vi.mocked(hasDemoDataDecisionBeenMade).mockReturnValue(false);
+    vi.mocked(buildDemoEntries).mockReturnValue([demoEntry]);
+
+    await renderApp();
+
+    await waitFor(() => expect(savePainEntry).toHaveBeenCalledWith(demoEntry));
+    await screen.findByText('These are sample check-ins so you can see how Tender works.');
+    expect(recordDemoSeeded).toHaveBeenCalledWith([demoEntry.id]);
+  });
+
+  it('does not seed demo entries when a decision has already been recorded, even if storage is empty', async () => {
+    vi.mocked(hasDemoDataDecisionBeenMade).mockReturnValue(true);
+
+    await renderApp();
+
+    expect(buildDemoEntries).not.toHaveBeenCalled();
+    expect(savePainEntry).not.toHaveBeenCalled();
+    expect(screen.queryByText(/sample check-ins/)).not.toBeInTheDocument();
+  });
+
+  it('clears exactly the seeded demo entries, and records that decision, when the visitor asks', async () => {
+    const demoEntry = createPainEntry({ regions: ['choir-b23'], intensity: 6, occurredAt: '2026-10-01T09:00:00.000Z' });
+    vi.mocked(listPainEntries).mockResolvedValue([demoEntry]);
+    vi.mocked(getSeededDemoIds).mockReturnValue([demoEntry.id]);
+
+    await renderApp();
+    const user = userEvent.setup();
+    await screen.findByText('These are sample check-ins so you can see how Tender works.');
+    await user.click(screen.getByRole('button', { name: 'Clear sample data' }));
+
+    await waitFor(() => expect(deletePainEntry).toHaveBeenCalledWith(demoEntry.id));
+    await waitFor(() => expect(screen.queryByText(/sample check-ins/)).not.toBeInTheDocument());
+    expect(recordDemoCleared).toHaveBeenCalledOnce();
   });
 });

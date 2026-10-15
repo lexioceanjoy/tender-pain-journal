@@ -50,6 +50,25 @@ Run automated tests and a production build:
 npm run check
 ```
 
+## Run the optional local AI narrative
+
+1. Copy `.env.example` to `.env.local`, set `TENDER_AI_PROVIDER` to `openai` or `anthropic`, and replace the matching placeholder with your own API key for that provider. Never commit `.env.local`.
+2. Run `npm run dev:ai` instead of `npm run dev`.
+3. Open Insights, choose a date range with at least one check-in, review the privacy notice, and explicitly consent before generating.
+
+The normal `npm run dev` and GitHub Pages build remain local-only and do not expose an API key. The AI response is not automatically saved to the diary.
+
+## Public demo (Vercel)
+
+A separate deployment runs the same app on Vercel, with the AI narrative passphrase-gated so it can't be used to run up API costs:
+
+- The static client builds and deploys exactly as it does anywhere else.
+- `api/ai-summary.ts` and `api/ai-provider-info.ts` are thin Vercel serverless wrappers around `server/app.ts`'s existing request-handling logic — no provider/consent logic is duplicated.
+- `api/ai-summary.ts` additionally requires an `X-Tender-Demo-Passphrase` header matching the `TENDER_DEMO_PASSPHRASE` Vercel environment variable. Visitors without it (or with the wrong value) see a clearly labeled pre-written sample narrative instead of a real model call — the same fallback shown for any other provider failure.
+- A first-time visitor sees a small set of seeded sample check-ins so the body map and Insights aren't empty; "Clear sample data" on Today removes them.
+
+Set `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY`), `TENDER_AI_PROVIDER`, and `TENDER_DEMO_PASSPHRASE` as Vercel Project → Settings → Environment Variables, server-side only. None of these are ever read from `.env.local` in that environment — Vercel's own env vars are the only source.
+
 ## Privacy boundary
 
 Tender makes no network request with health entries in its current mode. Records are stored in the browser's IndexedDB database. The app records the last backup date only on the same device; it never uploads the backup. The user must download backups themselves, because uninstalling or clearing browser data can otherwise remove the journal.

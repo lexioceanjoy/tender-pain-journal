@@ -7,12 +7,18 @@ import { InsightsPanel } from '../features/insights/InsightsPanel';
 import { MoreScreen } from '../features/settings/MoreScreen';
 import { TodayScreen } from '../features/today/TodayScreen';
 import { deletePainEntry, listPainEntries, mergePainEntries, savePainEntry } from '../shared/data/database';
+import {
+  buildDemoEntries, getSeededDemoIds, hasDemoDataDecisionBeenMade,
+  recordDemoCleared, recordDemoSeeded
+} from '../shared/data/demoData';
 import { createPainEntry, updatePainEntry, type PainEntry, type PainEntryInput } from '../shared/data/painEntry';
+import { requestPersistentStorageOnce } from '../shared/storage/persistentStorage';
 import { navigateTo, routeFromHash, type AppRoute } from './routes';
 
 export function App() {
   const [route, setRoute] = useState<AppRoute>(() => routeFromHash());
   const [entries, setEntries] = useState<PainEntry[]>([]);
+  const [demoEntryIds, setDemoEntryIds] = useState<string[]>([]);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [savedMessage, setSavedMessage] = useState<string>();
   const [safetyOpen, setSafetyOpen] = useState(false);
@@ -21,7 +27,18 @@ export function App() {
   const { draft, setDraft, startNew, startRepeat, startEdit } = useEntryDraft();
 
   useEffect(() => {
-    listPainEntries().then(setEntries).catch(() => setSaveState('error'));
+    listPainEntries().then(async (loaded) => {
+      if (loaded.length === 0 && !hasDemoDataDecisionBeenMade()) {
+        const seeded = buildDemoEntries();
+        await Promise.all(seeded.map((entry) => savePainEntry(entry)));
+        recordDemoSeeded(seeded.map((entry) => entry.id));
+        setDemoEntryIds(seeded.map((entry) => entry.id));
+        setEntries(seeded);
+      } else {
+        setDemoEntryIds(getSeededDemoIds());
+        setEntries(loaded);
+      }
+    }).catch(() => setSaveState('error'));
   }, []);
 
   useEffect(() => {
@@ -92,6 +109,11 @@ export function App() {
       await savePainEntry(entry);
       setEntries((current) => [...current.filter((item) => item.id !== entry.id), entry]
         .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)));
+      // Only ever actually asks the browser once (see
+      // requestPersistentStorageOnce) — safe to call after every save.
+      // Deliberately not on mount/page load: the first ask should follow
+      // a real save, not just opening the app.
+      void requestPersistentStorageOnce();
       const wasEditing = draft.mode === 'edit';
       startNew();
       setSaveState('saved');
@@ -102,6 +124,13 @@ export function App() {
     } catch {
       setSaveState('error');
     }
+  }
+
+  async function clearDemoData() {
+    await Promise.all(demoEntryIds.map((id) => deletePainEntry(id)));
+    recordDemoCleared();
+    setEntries((current) => current.filter((entry) => !demoEntryIds.includes(entry.id)));
+    setDemoEntryIds([]);
   }
 
   function editEntry(entry: PainEntry) {
@@ -144,6 +173,8 @@ export function App() {
           <TodayScreen
             entries={entries}
             savedMessage={savedMessage}
+            showingDemoData={entries.some((entry) => demoEntryIds.includes(entry.id))}
+            onClearDemoData={clearDemoData}
             onNew={beginNew}
             onRepeat={beginRepeat}
             onSelectEntry={selectEntry}
