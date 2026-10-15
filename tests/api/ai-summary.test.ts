@@ -28,7 +28,9 @@ const ORIGINAL_ENV = { ...process.env };
 
 // Each test re-imports the module after setting process.env, because
 // api/ai-summary.ts resolves its provider/passphrase once at module
-// load — exactly like the Vercel runtime does per cold start.
+// load — exactly like the Vercel runtime does per cold start. Lives
+// under tests/api/, not api/, so Vercel never deploys this file as a
+// function of its own.
 describe('api/ai-summary', () => {
   beforeEach(() => {
     vi.resetModules();
@@ -43,7 +45,7 @@ describe('api/ai-summary', () => {
     process.env.TENDER_AI_PROVIDER = 'anthropic';
     process.env.ANTHROPIC_API_KEY = 'secret-key';
     delete process.env.TENDER_DEMO_PASSPHRASE;
-    const { default: handler } = await import('./ai-summary.js');
+    const { default: handler } = await import('../../api/ai-summary.js');
     const { response, state } = fakeResponse();
 
     await handler(fakeRequest({
@@ -57,7 +59,7 @@ describe('api/ai-summary', () => {
     process.env.TENDER_AI_PROVIDER = 'anthropic';
     process.env.ANTHROPIC_API_KEY = 'secret-key';
     process.env.TENDER_DEMO_PASSPHRASE = 'test-demo-code';
-    const { default: handler } = await import('./ai-summary.js');
+    const { default: handler } = await import('../../api/ai-summary.js');
     const { response, state } = fakeResponse();
 
     await handler(fakeRequest({ method: 'POST', url: '/api/ai-summary' }), response);
@@ -70,7 +72,7 @@ describe('api/ai-summary', () => {
     process.env.TENDER_AI_PROVIDER = 'anthropic';
     process.env.ANTHROPIC_API_KEY = 'secret-key';
     process.env.TENDER_DEMO_PASSPHRASE = ' test-demo-code ';
-    const { default: handler } = await import('./ai-summary.js');
+    const { default: handler } = await import('../../api/ai-summary.js');
     const { response, state } = fakeResponse();
 
     await handler(fakeRequest({
@@ -86,7 +88,7 @@ describe('api/ai-summary', () => {
   it('returns a clean 503, not a crash, when the provider is misconfigured', async () => {
     delete process.env.TENDER_AI_PROVIDER;
     process.env.TENDER_DEMO_PASSPHRASE = 'test-demo-code';
-    const { default: handler } = await import('./ai-summary.js');
+    const { default: handler } = await import('../../api/ai-summary.js');
     const { response, state } = fakeResponse();
 
     await handler(fakeRequest({

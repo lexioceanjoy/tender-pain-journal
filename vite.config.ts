@@ -13,6 +13,13 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: {
+        // generateSW registers a catch-all NavigationRoute to index.html
+        // by default. Without this, a direct navigation to an /api/*
+        // path (e.g. typing it in the address bar) gets served the
+        // cached app shell instead of reaching the Vercel function.
+        navigateFallbackDenylist: [/^\/api\//]
+      },
       manifest: {
         name: 'Tender — private pain journal',
         short_name: 'Tender',

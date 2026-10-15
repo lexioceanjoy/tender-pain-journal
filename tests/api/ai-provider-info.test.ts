@@ -19,6 +19,8 @@ function fakeResponse() {
 
 const ORIGINAL_ENV = { ...process.env };
 
+// Lives under tests/api/, not api/, so Vercel never deploys this file
+// as a function of its own.
 describe('api/ai-provider-info', () => {
   beforeEach(() => {
     vi.resetModules();
@@ -33,7 +35,7 @@ describe('api/ai-provider-info', () => {
     process.env.TENDER_AI_PROVIDER = 'anthropic';
     process.env.ANTHROPIC_API_KEY = 'secret-key';
     process.env.TENDER_DEMO_PASSPHRASE = 'test-demo-code';
-    const { default: handler } = await import('./ai-provider-info.js');
+    const { default: handler } = await import('../../api/ai-provider-info.js');
     const { response, state } = fakeResponse();
 
     await handler(fakeRequest({ method: 'GET', url: '/api/ai-provider-info' }), response);
@@ -44,7 +46,7 @@ describe('api/ai-provider-info', () => {
 
   it('returns a clean 503, not a crash, when the provider is misconfigured', async () => {
     delete process.env.TENDER_AI_PROVIDER;
-    const { default: handler } = await import('./ai-provider-info.js');
+    const { default: handler } = await import('../../api/ai-provider-info.js');
     const { response, state } = fakeResponse();
 
     await handler(fakeRequest({ method: 'GET', url: '/api/ai-provider-info' }), response);

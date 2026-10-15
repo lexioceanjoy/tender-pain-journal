@@ -6,7 +6,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    include: ['src/**/*.test.{ts,tsx}', 'server/**/*.test.{ts,tsx}', 'api/**/*.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}', 'server/**/*.test.{ts,tsx}', 'tests/api/**/*.test.{ts,tsx}'],
     setupFiles: ['./tests/setup.ts'],
     env: { TZ: 'UTC' }
   }
