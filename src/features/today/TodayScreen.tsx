@@ -4,12 +4,14 @@ import { EntryHistory } from '../history/EntryHistory';
 type Props = {
   entries: PainEntry[];
   savedMessage?: string;
+  showingDemoData?: boolean;
+  onClearDemoData?: () => void;
   onNew: () => void;
   onRepeat: (entry: PainEntry) => void;
   onSelectEntry: (entry: PainEntry) => void;
 };
 
-export function TodayScreen({ entries, savedMessage, onNew, onRepeat, onSelectEntry }: Props) {
+export function TodayScreen({ entries, savedMessage, showingDemoData, onClearDemoData, onNew, onRepeat, onSelectEntry }: Props) {
   const latest = entries[0];
   return (
     <>
@@ -17,6 +19,12 @@ export function TodayScreen({ entries, savedMessage, onNew, onRepeat, onSelectEn
         <p className="eyebrow">Today</p>
         <h2 id="today-title">A quick note while it’s fresh.</h2>
         <p>Mark where it hurts, choose an intensity, and save. Add more only when it feels useful.</p>
+        {showingDemoData && (
+          <p className="demo-banner" role="status">
+            These are sample check-ins so you can see how Tender works.{' '}
+            <button type="button" onClick={onClearDemoData}>Clear sample data</button>
+          </p>
+        )}
         {savedMessage && <p className="save-feedback" role="status">{savedMessage}</p>}
         <div className="today-actions">
           <button className="primary-action" type="button" onClick={onNew}>New check-in</button>
