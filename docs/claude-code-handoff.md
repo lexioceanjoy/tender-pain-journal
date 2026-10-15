@@ -16,13 +16,11 @@ This repository is the full source of truth for Tender, a personal, phone-first 
 | --- | --- |
 | Canonical local checkout | `/Users/lexi/projects/tender-pain-journal` |
 | GitHub remote | `https://github.com/lexioceanjoy/tender-pain-journal.git` |
-| Published/default branch | `main` at `578891a` (`Ship Iteration A fast check-in workflow`) |
-| Public site (Iteration A) | GitHub Pages, local-first app only |
-| AI prototype branch | `feat/iteration-b`, 12+ commits ahead of `main` |
-| AI branch checkout | `/Users/lexi/projects/tender-pain-journal-iteration-b` |
-| Public demo (Iteration B) | Vercel, passphrase-gated AI narrative — see `CLAUDE.md` rule 5's explicit exception |
+| Published/default branch | `main` at `75e8bb4` or later (`Merge pull request #1 from lexioceanjoy/feat/iteration-b`) |
+| AI prototype branch | `feat/iteration-b`, merged into `main` via PR #1 on 2026-10-15 |
+| Public site | https://tender-pain-journal.vercel.app (Vercel production tracks `main`), passphrase-gated AI narrative — see `CLAUDE.md` rule 5's explicit exception. GitHub Pages is retired. |
 
-`main` is stable, published, and should not be overwritten. Iteration B is intentionally not merged into `main`. It now has a provider-adapter (OpenAI + Anthropic) and a Vercel demo deployment path, but the AI narrative still has not been reviewed with a real provider account — see "AI state and next decision" below.
+`main` is stable, published, and should not be overwritten. Iteration B was merged into `main` via PR #1 on 2026-10-15, and Vercel production deploys from `main`. It has a provider-adapter (OpenAI + Anthropic) and a Vercel demo deployment path, but the AI narrative still has not been reviewed with a real provider account — see "AI state and next decision" below.
 
 ## Product intent that should survive future work
 
@@ -46,7 +44,7 @@ This repository is the full source of truth for Tender, a personal, phone-first 
 - Optional context fields and medications.
 - Rules-based observations that state co-occurrence, not causation.
 
-### Iteration B — on `feat/iteration-b`, now also a Vercel demo
+### Iteration B — merged into `main`, live as the Vercel demo
 
 - Optional AI appointment narrative in Insights.
 - Explicit request-specific consent with a provider/privacy notice (copy intentionally states Tender's own behavior, not a paraphrase of the provider's retention terms — see ADR 0009).
@@ -75,16 +73,16 @@ When that review does happen: use synthetic or non-emergency entries, inspect th
 
 - No diagnosis, triage, treatment recommendation, condition prediction, or causal claims.
 - No mandatory optional fields, no account system, no cloud sync, no user analytics, and no ads in the first release.
-- GitHub Pages must remain local-only: it cannot safely host server keys.
+- The public static client must never hold provider keys; they live only in Vercel's server-side environment variables.
 - A public portfolio app is not evidence of clinical validation. Keep CHOIR attribution and its caveat.
 - Do not use a `--force` upgrade or destructive Git operation to solve routine dependency or branch problems.
 
 ## How to resume safely
 
-1. Open the Iteration B worktree shown above, not a disposable blank folder.
+1. Open the canonical checkout shown above, not a disposable blank folder.
 2. Run `git status --branch`, then `npm install` and `npm run check` before modifications.
 3. For visual or flow changes, run `npm run test:e2e` and inspect the phone viewport manually.
-4. Make commits on a feature branch. Review and merge deliberately into `main`; verify branch, commit, remote, and deployed GitHub Pages build before claiming publication.
+4. Make commits on a feature branch. Review and merge deliberately into `main`; verify branch, commit, remote, and the deployed build at https://tender-pain-journal.vercel.app before claiming publication.
 5. Never include `.env.local`, browser IndexedDB, downloaded backups, or actual health entries in commits, issues, or screenshots.
 
 ## Important files

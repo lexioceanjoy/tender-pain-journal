@@ -1,5 +1,7 @@
 # ADR 0008 — consent-gated local AI narrative
 
+> Status update (Oct 2026): GitHub Pages deployment retired; Vercel is the only public site.
+
 ## Status
 
 Accepted for Iteration B implementation and product review.
