@@ -10,18 +10,19 @@ This repository is the full source of truth for Tender, a personal, phone-first 
 4. `docs/data-model.md` and `docs/test-strategy.md` — data constraints and quality gates.
 5. `docs/decisions/` — why key decisions were made.
 
-## Repository and branch reality — 2026-08-26
+## Repository and branch reality — 2026-10-15
 
 | Item | State |
 | --- | --- |
 | Canonical local checkout | `/Users/lexi/projects/tender-pain-journal` |
 | GitHub remote | `https://github.com/lexioceanjoy/tender-pain-journal.git` |
 | Published/default branch | `main` at `578891a` (`Ship Iteration A fast check-in workflow`) |
-| Public site | GitHub Pages, local-first app only |
-| AI prototype branch | `feat/iteration-b` at `834b055` plus this handoff commit |
+| Public site (Iteration A) | GitHub Pages, local-first app only |
+| AI prototype branch | `feat/iteration-b`, 12+ commits ahead of `main` |
 | AI branch checkout | `/Users/lexi/projects/tender-pain-journal-iteration-b` |
+| Public demo (Iteration B) | Vercel, passphrase-gated AI narrative — see `CLAUDE.md` rule 5's explicit exception |
 
-`main` is stable, published, and should not be overwritten. Iteration B is intentionally not merged or deployed. It has a local AI server and must be reviewed with a real provider account before release.
+`main` is stable, published, and should not be overwritten. Iteration B is intentionally not merged into `main`. It now has a provider-adapter (OpenAI + Anthropic) and a Vercel demo deployment path, but the AI narrative still has not been reviewed with a real provider account — see "AI state and next decision" below.
 
 ## Product intent that should survive future work
 
@@ -45,30 +46,30 @@ This repository is the full source of truth for Tender, a personal, phone-first 
 - Optional context fields and medications.
 - Rules-based observations that state co-occurrence, not causation.
 
-### Iteration B — local prototype on `feat/iteration-b`
+### Iteration B — on `feat/iteration-b`, now also a Vercel demo
 
 - Optional AI appointment narrative in Insights.
-- Explicit request-specific consent with a provider/privacy notice.
+- Explicit request-specific consent with a provider/privacy notice (copy intentionally states Tender's own behavior, not a paraphrase of the provider's retention terms — see ADR 0009).
 - Only selected date-range entries leave the device; IDs, record metadata, and the API key do not.
-- A Node local server on `127.0.0.1:8787`; Vite proxies `/api` only during local development.
+- A real provider adapter interface (`server/providers/`) with both an OpenAI and an Anthropic implementation (ADR 0009); `TENDER_AI_PROVIDER` picks one, read once at server startup, never from request input.
+- Two runtimes share the same handler logic (`server/app.ts`, deliberately extracted from port-binding so it's unit-testable):
+  - Local dev: a Node server on `127.0.0.1:8787`, started by `npm run dev:ai`; Vite proxies `/api` only during local development.
+  - Public demo: Vercel serverless functions (`api/ai-summary.ts`, `api/ai-provider-info.ts`), thin wrappers around the same `server/app.ts` logic, reading `process.env` instead of `.env.local`.
+- The public demo additionally gates `api/ai-summary.ts` behind an `X-Tender-Demo-Passphrase` header checked against `TENDER_DEMO_PASSPHRASE` (Vercel env var, server-side only, never in the client bundle or git). Local dev never checks this header. When it's absent/wrong, or the provider call fails for any other reason, the panel shows a clearly labeled pre-written sample narrative instead of a raw error — never silence, never a stack trace.
+- The public demo seeds a handful of sample check-ins on first visit (empty IndexedDB + no prior decision recorded) so a visitor sees a populated body map and Insights immediately; a "Clear sample data" control on Today removes exactly those seeded entries and remembers that choice, so they never silently reappear.
 - `store: false`, payload-size/schema validation, random safety identifier, and instructions that forbid diagnosis, triage, treatment, causal claims, and following instructions contained in diary notes.
 - Result stays only in component memory, can be cleared/revoked, and is not included in diary records, backups, or reports.
-- Clear UI message for missing API key, billing/credits, authorization, model, and generic provider failures.
+- Clear UI message for missing API key, billing/credits, authorization, model, and generic provider failures — now unified with the demo-passphrase failure path into the same labeled-sample fallback.
 
 ## AI state and next decision
 
-The prototype currently uses the OpenAI SDK and `OPENAI_API_KEY`; it was designed so that key is server-side only. The original local test correctly proved the key was valid, but the OpenAI account had no API credits. No representative diary payload has been sent to a model and no narrative quality review has happened.
+The provider-adapter migration described in the previous version of this doc is **done** (ADR 0009, Accepted): both OpenAI and Anthropic adapters exist behind `server/providers/`, each with its own env vars, consent/retention copy, minimized payload, and the ADR 0008 non-diagnostic contract.
 
-The product owner now wants to use Claude Code and may prefer Anthropic instead of OpenAI. Do **not** simply swap SDK calls. First create a small provider interface, then add an Anthropic adapter and leave an OpenAI adapter or remove it only with an explicit decision. Every provider must have:
+**What's still outstanding:** no representative diary payload has been sent to a real Anthropic (or OpenAI) account yet, and no narrative-quality review has happened. `CLAUDE.md` rule 5 still blocks merging to `main` or running the AI narrative ungated for the general public until that happens.
 
-- its own environment variables, local-only server configuration, and no browser-side secret;
-- provider-specific, accurate consent and retention wording;
-- a minimized/schematized payload;
-- a non-diagnostic prompt contract equivalent to ADR 0008;
-- errors that remain actionable but do not leak provider internals or health data;
-- tests for consent, payload minimization, settings, and failure behavior.
+The Vercel public demo is a deliberate, narrower exception to that rule (approved 2026-10-15): it's safe to deploy *before* the real-key review specifically because live generation is passphrase-gated to whoever holds `TENDER_DEMO_PASSPHRASE` — an anonymous visitor only ever sees the labeled sample narrative, never a real model call. Removing or widening that gate, or merging to `main`, still requires the real-key test and quality approval first.
 
-For the first actual test, use synthetic or non-emergency entries, inspect the output as a clinician-facing factual summary, and obtain product-owner approval before merge/deploy.
+When that review does happen: use synthetic or non-emergency entries, inspect the output as a clinician-facing factual summary, and obtain product-owner approval before merge or before loosening the demo gate.
 
 ## Constraints and non-goals
 
@@ -94,9 +95,11 @@ For the first actual test, use synthetic or non-emergency entries, inspect the o
 | Body-map source and attribution | `src/features/body-map/`, `vendor/choir-body-map/`, `THIRD_PARTY_NOTICES.md` |
 | Local data model | `src/shared/data/painEntry.ts`, `docs/data-model.md` |
 | Insights and reports | `src/features/insights/` |
-| Optional AI prototype | `src/features/ai-summary/`, `server/`, `.env.example`, `docs/decisions/0008-consent-gated-ai-narrative.md` |
+| Optional AI narrative, provider adapters | `src/features/ai-summary/`, `server/`, `.env.example`, `docs/decisions/0008-consent-gated-ai-narrative.md`, `docs/decisions/0009-anthropic-provider-adapter.md` |
+| Vercel demo deploy, passphrase gate | `api/`, `vercel.json`, `src/features/ai-summary/demoAccess.ts`, `src/features/ai-summary/sampleNarrative.ts` |
+| Demo seed data | `src/shared/data/demoData.ts`, `src/features/today/TodayScreen.tsx` |
 | Automated tests | `src/**/*.test.ts*`, `tests/e2e/` |
-| Hosting | `.github/workflows/`, `vite.config.ts` |
+| Hosting | `.github/workflows/`, `vite.config.ts`, `vercel.json` |
 
 ## Suggested first Claude Code task
 
