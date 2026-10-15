@@ -18,9 +18,9 @@ This repository is the full source of truth for Tender, a personal, phone-first 
 | GitHub remote | `https://github.com/lexioceanjoy/tender-pain-journal.git` |
 | Published/default branch | `main` at `75e8bb4` or later (`Merge pull request #1 from lexioceanjoy/feat/iteration-b`) |
 | AI prototype branch | `feat/iteration-b`, merged into `main` via PR #1 on 2026-10-15 |
-| Public site | https://tender-pain-journal.vercel.app (Vercel production tracks `main`), passphrase-gated AI narrative — see `CLAUDE.md` rule 5's explicit exception. GitHub Pages is retired. |
+| Public site | https://tender-pain-journal.vercel.app (Vercel production tracks `main`), passphrase-gated AI narrative — see `CLAUDE.md` rule 5. GitHub Pages is retired. |
 
-`main` is stable, published, and should not be overwritten. Iteration B was merged into `main` via PR #1 on 2026-10-15, and Vercel production deploys from `main`. It has a provider-adapter (OpenAI + Anthropic) and a Vercel demo deployment path, but the AI narrative still has not been reviewed with a real provider account — see "AI state and next decision" below.
+`main` is stable, published, and should not be overwritten. Iteration B was merged into `main` via PR #1 on 2026-10-15, and Vercel production deploys from `main`. It has a provider-adapter (OpenAI + Anthropic) and a Vercel demo deployment path. The AI path has been tested with a real Anthropic key, locally and on Vercel, but the narrative quality review has not happened yet — see "AI state and next decision" below.
 
 ## Product intent that should survive future work
 
@@ -63,11 +63,11 @@ This repository is the full source of truth for Tender, a personal, phone-first 
 
 The provider-adapter migration described in the previous version of this doc is **done** (ADR 0009, Accepted): both OpenAI and Anthropic adapters exist behind `server/providers/`, each with its own env vars, consent/retention copy, minimized payload, and the ADR 0008 non-diagnostic contract.
 
-**What's still outstanding:** no representative diary payload has been sent to a real Anthropic (or OpenAI) account yet, and no narrative-quality review has happened. `CLAUDE.md` rule 5 still blocks merging to `main` or running the AI narrative ungated for the general public until that happens.
+**Done (2026-10-15):** the AI path was tested with a real Anthropic key, locally and on Vercel, and `feat/iteration-b` was merged into `main` via PR #1.
 
-The Vercel public demo is a deliberate, narrower exception to that rule (approved 2026-10-15): it's safe to deploy *before* the real-key review specifically because live generation is passphrase-gated to whoever holds `TENDER_DEMO_PASSPHRASE` — an anonymous visitor only ever sees the labeled sample narrative, never a real model call. Removing or widening that gate, or merging to `main`, still requires the real-key test and quality approval first.
+**What's still outstanding — the next planned task:** the narrative quality review. Until it's done, `CLAUDE.md` rule 5 keeps live AI generation behind the demo passphrase (`TENDER_DEMO_PASSPHRASE`); an anonymous visitor only ever sees the labeled sample narrative, never a real model call. Do not remove or loosen the passphrase gate before that review.
 
-When that review does happen: use synthetic or non-emergency entries, inspect the output as a clinician-facing factual summary, and obtain product-owner approval before merge or before loosening the demo gate.
+When that review happens: use the fixture-based before/after evaluation on synthetic or non-emergency entries, inspect the output as a clinician-facing factual summary, and obtain product-owner approval before loosening the demo gate.
 
 ## Constraints and non-goals
 
