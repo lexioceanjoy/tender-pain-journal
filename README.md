@@ -56,11 +56,11 @@ npm run check
 2. Run `npm run dev:ai` instead of `npm run dev`.
 3. Open Insights, choose a date range with at least one check-in, review the privacy notice, and explicitly consent before generating.
 
-The normal `npm run dev` and GitHub Pages build remain local-only and do not expose an API key. The AI response is not automatically saved to the diary.
+The normal `npm run dev` build remains local-only and does not expose an API key. The AI response is not automatically saved to the diary.
 
 ## Public demo (Vercel)
 
-A separate deployment runs the same app on Vercel, with the AI narrative passphrase-gated so it can't be used to run up API costs:
+The only public deployment is https://tender-pain-journal.vercel.app. It runs the same app, with the AI narrative passphrase-gated so it can't be used to run up API costs:
 
 - The static client builds and deploys exactly as it does anywhere else.
 - `api/ai-summary.ts` and `api/ai-provider-info.ts` are thin Vercel serverless wrappers around `server/app.ts`'s existing request-handling logic — no provider/consent logic is duplicated.
@@ -73,4 +73,4 @@ Set `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY`), `TENDER_AI_PROVIDER`, and `TENDER
 
 Tender makes no network request with health entries in its current mode. Records are stored in the browser's IndexedDB database. The app records the last backup date only on the same device; it never uploads the backup. The user must download backups themselves, because uninstalling or clearing browser data can otherwise remove the journal.
 
-The publicly hosted application serves the same local-first build through GitHub Pages. Public access exposes the app interface and source behavior, not one visitor's diary to another visitor or to a Tender account.
+The public site at https://tender-pain-journal.vercel.app serves the same local-first app; only the optional, passphrase-gated AI narrative uses a server. Public access exposes the app interface and source behavior, not one visitor's diary to another visitor or to a Tender account.
