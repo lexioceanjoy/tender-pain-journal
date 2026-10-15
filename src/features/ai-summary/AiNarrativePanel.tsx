@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import type { PainEntry } from '../../shared/data/painEntry';
 import { buildAiSummaryRequest, tenderSafetyId } from './aiSummary';
+import { getDemoPassphrase, setDemoPassphrase } from './demoAccess';
 import { fetchProviderInfo, type ProviderInfo } from './providerInfo';
+import { SAMPLE_NARRATIVE, SAMPLE_NARRATIVE_LABEL } from './sampleNarrative';
 
 type Props = { entries: PainEntry[]; from: string; to: string };
 
@@ -10,11 +12,16 @@ export function AiNarrativePanel({ entries, from, to }: Props) {
   const [consented, setConsented] = useState(false);
   const [state, setState] = useState<'idle' | 'loading' | 'error' | 'done'>('idle');
   const [narrative, setNarrative] = useState('');
-  const [error, setError] = useState('');
+  const [passphraseDraft, setPassphraseDraft] = useState(() => getDemoPassphrase());
 
   useEffect(() => {
     fetchProviderInfo().then(setProviderInfo);
   }, []);
+
+  function onPassphraseChange(value: string) {
+    setPassphraseDraft(value);
+    setDemoPassphrase(value);
+  }
 
   const ready = providerInfo?.ready ?? false;
   const displayName = providerInfo?.displayName ?? 'the configured AI provider';
@@ -22,22 +29,24 @@ export function AiNarrativePanel({ entries, from, to }: Props) {
   async function generate() {
     if (!consented || !entries.length || !ready) return;
     setState('loading');
-    setError('');
     try {
       const response = await fetch('/api/ai-summary', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Tender-Safety-ID': tenderSafetyId()
+          'X-Tender-Safety-ID': tenderSafetyId(),
+          'X-Tender-Demo-Passphrase': getDemoPassphrase()
         },
         body: JSON.stringify(buildAiSummaryRequest(entries, from, to))
       });
       const result = await response.json() as { narrative?: string; error?: string };
-      if (!response.ok || !result.narrative) throw new Error(result.error ?? 'AI summary unavailable.');
+      if (!response.ok || !result.narrative) throw new Error('AI summary unavailable.');
       setNarrative(result.narrative);
       setState('done');
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'AI summary unavailable.');
+    } catch {
+      // Never show the raw error (wrong/missing demo passphrase and any
+      // provider failure look identical to a visitor): fall through to
+      // the labeled sample narrative below instead.
       setState('error');
     }
   }
@@ -45,7 +54,6 @@ export function AiNarrativePanel({ entries, from, to }: Props) {
   function revoke() {
     setConsented(false);
     setNarrative('');
-    setError('');
     setState('idle');
   }
 
@@ -75,7 +83,27 @@ export function AiNarrativePanel({ entries, from, to }: Props) {
           <span>I understand what will leave this device for this request.</span>
         </label>
       )}
-      {state === 'error' && <p className="ai-error" role="alert">{error} The private observations above still work without AI.</p>}
+      {!narrative && (
+        <details className="ai-demo-gate">
+          <summary>Have a demo access code?</summary>
+          <label>
+            <span>Demo access code</span>
+            <input
+              type="password"
+              autoComplete="off"
+              value={passphraseDraft}
+              onChange={(event) => onPassphraseChange(event.target.value)}
+            />
+          </label>
+        </details>
+      )}
+      {state === 'error' && (
+        <div className="ai-sample">
+          <strong>{SAMPLE_NARRATIVE_LABEL}</strong>
+          <p>{SAMPLE_NARRATIVE}</p>
+        </div>
+      )}
+      {state === 'error' && <p className="ai-error" role="alert">The private observations above still work without AI.</p>}
       {narrative && <div className="ai-result"><strong>AI-written summary</strong><p>{narrative}</p></div>}
       <div className="ai-actions">
         {!narrative && <button type="button" disabled={!consented || !entries.length || !ready || state === 'loading'} onClick={generate}>{state === 'loading' ? 'Writing…' : 'Generate narrative'}</button>}
