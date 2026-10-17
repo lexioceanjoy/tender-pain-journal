@@ -197,16 +197,106 @@ The product owner is the only reviewer. They score each selected narrative
 | Dimension | 5 means |
 | --- | --- |
 | Faithfulness | Every statement is supported by the records; nothing invented or overstated |
-| Usefulness | Would help the person or a clinician notice a pattern they'd otherwise miss, rather than restating entries one by one |
+| Usefulness (clinician lens) | See the definition below |
 | Coverage | Every `mustMention` fact appears, plus anything else a clinician would want from these records |
 | Co-occurrence framing | Relationships are described as "recorded alongside", never as cause, prediction, or explanation |
 | Limits stated | Small samples, gaps, and missing fields are acknowledged where relevant, without filler |
 | Clinician readability | Could be read aloud at the start of an appointment: plain, ordered, no hedging padding |
 
+#### Usefulness (clinician lens)
+
+Could a clinician, reading this in about a minute, learn something about
+the person's pain since their last visit that would change what they ask
+about or discuss? Score higher when the narrative:
+
+1. states change over time with numbers;
+2. describes pain the way clinicians assess it: location, spread and side,
+   quality, timing pattern, and logged aggravating or easing factors;
+3. reports impact on daily life where recorded (activities, sleep, mood);
+4. describes pain around logged treatments descriptively, never judging or
+   recommending them;
+5. flags data gaps;
+6. is readable in a brief visit.
+
+"Where recorded" matters for item 3: Tender logs activities as context
+("Activity or possible trigger"), not as limitations. A narrative that
+turns a logged "Long sitting" into "pain limited sitting" scores lower on
+faithfulness, whatever it gains here.
+
+**Basis.**
+
+- NIH/NICHD, ["How can I describe my pain to my health care
+  provider?"](https://www.nichd.nih.gov/health/topics/pelvicpain/conditioninfo/Pages/describe.aspx)
+  (last reviewed 2017-01-31) lists what helps a clinician assess pain:
+  how long it has lasted, where it is, whether it is in one spot or spread
+  out, how it feels and how severe it is, whether it is constant or comes
+  and goes, what activities make it worse or better, how it limits what
+  you can do, how often it occurs and how long it lasts, and triggers.
+  Items 2 and 3 follow this list.
+- IMMPACT: Dworkin RH et al., "Core outcome measures for chronic pain
+  clinical trials: IMMPACT recommendations," *Pain* 2005;113(1–2):9–19,
+  doi:10.1016/j.pain.2004.09.012. It recommends measures for the IMMPACT
+  core domains (first set out in Turk et al., *Pain* 2003), which include
+  pain, physical functioning, emotional functioning, and the person's
+  rating of improvement. Items 1 and 3 cover the parts a diary can record.
+  These are trial outcome domains, used here as a checklist of what
+  matters, not as a validated scale.
+- Cohen DJ et al., "Integrating Patient-Generated Health Data Into
+  Clinical Care Settings or Clinical Decision-Making: Lessons Learned From
+  Project HealthDesign," *JMIR Hum Factors* 2016;3(2):e26,
+  doi:10.2196/humanfactors.5919. Clinicians reported deeper insight into
+  the patient's condition, more accurate information, and insight between
+  visits, including seeing "how patients' symptoms varied over longer
+  periods of time." They also said the data "needs to be summarized so
+  that patterns can be easily visualized," and one worried that "going
+  through this much data was going to be so time consuming." Items 1, 5
+  and 6 come from this.
+- Clinician time constraints: Konrad TR et al., "It's about time:
+  Physicians' perceptions of time constraints in primary care medical
+  practice in three national healthcare systems," *Med Care*
+  2010;48(2):95–100, doi:10.1097/MLR.0b013e3181c12e6a, found routine visits
+  allocated 6 (Germany), 10 (UK), and 18 (US) minutes, with physicians
+  saying they needed more. Siteman E et al., *AMIA Annu Symp Proc*
+  2006:1101, found only 30% of surveyed primary care providers believed
+  there was enough time to review all the necessary information. This is
+  the basis for "about a minute" and item 6.
+
+#### Product gaps for usefulness items 2–3
+
+What Tender's data model (`src/shared/data/painEntry.ts`) can't record
+today, so no narrative can report it however good the prompt is:
+
+| Item | Element | Supported today? |
+| --- | --- | --- |
+| 2 | Location and side | Yes: body-map regions and precision areas, with left/right in their labels |
+| 2 | Spread | Partly: several regions per entry and a "radiating" sensation, but no "one spot vs spread out" field and no direction of spread |
+| 2 | Quality and severity | Yes: seven sensations plus 0–10 intensity |
+| 2 | Timing pattern | Partly: each check-in's time is recorded, but not how long an episode lasted, whether pain is constant or comes and goes, or when it started |
+| 2 | Aggravating / easing factors | Partly: activities are logged as "Activity or possible trigger" without saying whether they made pain worse or better; medication "perceived effect" is the only easing signal, and there is no field for non-medication easing factors |
+| 2 | Per-area intensity and sensation | Recorded (`areaDetails`), but not sent to the model; see "Per-area detail: a known payload gap" |
+| 3 | Limits on daily activities (IMMPACT physical functioning) | No: activities are context, not interference; nothing records "couldn't work" or "had to stop" |
+| 3 | Sleep | Partly: sleep quality (poor / okay / good), but not whether pain disturbed sleep |
+| 3 | Mood (IMMPACT emotional functioning) | Partly: mood and stress levels, but not whether they relate to the pain |
+
+The free-text note can carry any of these, but only when the person
+happens to write it. Closing any gap is a product decision, not part of
+this evaluation: it adds optional check-in fields (which must stay out of
+the under-30-second core path) and, if sent to the model, changes the
+payload and needs the product owner's explicit approval.
+
 For a before/after run, the reviewer also gets each fixture's "before" and
 "after" narratives side by side, in random left/right order with the
 configuration hidden, and picks which they would rather hand to a clinician
 (or "no preference").
+
+**Optional clinician check (before the gate decision).** One or two
+clinicians score 5 or 6 of the scored narratives on the usefulness rubric
+alone, chosen to include `typical-two-weeks`, `rising`, and
+`co-occurrence-trap`. They see only synthetic fixtures and their
+narratives, never real diary data. Their scores are input to the product
+owner's decision, not a gate of their own, and are recorded next to it in
+`docs/`. A large gap between their scores and the product owner's is a
+reason to revisit the rubric before deciding.
 
 An LLM grader may be added later to pre-screen faithfulness, but it is
 advisory only. It never replaces the human score or decides a gate.
@@ -312,8 +402,10 @@ terminal, not narrative text or payloads.
    change that requires the product owner's explicit approval.
 3. **Samples per fixture.** 3. Automatic checks run on all 3; 1 random
    sample per fixture is scored by hand.
-4. **Reviewer.** The product owner only.
-5. **Usefulness** is a rubric dimension, weighted equally with
-   faithfulness in the ship criteria.
+4. **Reviewer.** The product owner scores everything. One or two
+   clinicians may optionally score usefulness on 5–6 narratives before the
+   gate decision, as input only.
+5. **Usefulness** is a rubric dimension, defined from the clinician's
+   point of view, weighted equally with faithfulness in the ship criteria.
 6. **Key.** The harness uses the local development key in `.env.local`,
    never the Vercel demo key.
