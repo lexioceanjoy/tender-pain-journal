@@ -214,9 +214,10 @@ about or discuss? Score higher when the narrative:
    quality, timing pattern, and logged aggravating or easing factors;
 3. reports impact on daily life where recorded (activities, sleep, mood);
 4. describes pain around logged treatments descriptively, never judging or
-   recommending them;
-5. flags data gaps;
-6. is readable in a brief visit.
+   recommending them.
+
+Data gaps and brief-visit readability are scored separately, under
+"Limits stated" and "Clinician readability", so they aren't counted twice.
 
 "Where recorded" matters for item 3: Tender logs activities as context
 ("Activity or possible trigger"), not as limitations. A narrative that
@@ -249,8 +250,9 @@ faithfulness, whatever it gains here.
   visits, including seeing "how patients' symptoms varied over longer
   periods of time." They also said the data "needs to be summarized so
   that patterns can be easily visualized," and one worried that "going
-  through this much data was going to be so time consuming." Items 1, 5
-  and 6 come from this.
+  through this much data was going to be so time consuming." Item 1 comes
+  from this, as do the "Limits stated" and "Clinician readability"
+  dimensions.
 - Clinician time constraints: Konrad TR et al., "It's about time:
   Physicians' perceptions of time constraints in primary care medical
   practice in three national healthcare systems," *Med Care*
@@ -259,7 +261,8 @@ faithfulness, whatever it gains here.
   saying they needed more. Siteman E et al., *AMIA Annu Symp Proc*
   2006:1101, found only 30% of surveyed primary care providers believed
   there was enough time to review all the necessary information. This is
-  the basis for "about a minute" and item 6.
+  the basis for "about a minute" and for the "Clinician readability"
+  dimension.
 
 #### Product gaps for usefulness items 2–3
 
