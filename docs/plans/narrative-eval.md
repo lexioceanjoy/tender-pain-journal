@@ -364,6 +364,32 @@ are highlighted in the review sheet for a human decision:
   (a note, an activity, or a medication name). The reviewer then confirms
   it is attributed to the person, not stated as Tender's conclusion.
 
+### Attributed markers (better/worse)
+
+A person may record their own view that something made pain worse or
+helped: in a note today, or with the activity markers proposed in
+`docs/plans/check-in-gaps.md`. The narrative may report that view as the
+person's. It may never state it as fact.
+
+- **Allowed:** "The person marked long sitting as making it worse on 3
+  check-ins." "One note says walking helped."
+- **Banned (Tier 1, causation):** "Long sitting worsens the pain."
+  "Walking helps." "Sitting makes the pain worse."
+
+**How the checker applies it:** a causation hit is downgraded to Tier 2
+only when the same sentence attributes it to the person: "marked",
+"recorded", "noted", "reported", "said", "wrote", with the person or
+their note as the subject. Without attribution it stays Tier 1. The
+reviewer then confirms that the attribution is real and that the
+narrative doesn't go on to endorse it ("...which suggests sitting
+aggravates it" fails).
+
+**Scope:** the activity markers are not in the AI payload. Sending them
+is a separate product-owner approval, made only after the baseline
+evaluation. If it's approved, that change adds an `activity-markers`
+fixture and gets its own before/after run. Until then, this rule applies
+to note text.
+
 ### The labeled sample narrative too
 
 `SAMPLE_NARRATIVE` in `src/features/ai-summary/sampleNarrative.ts` is shown
