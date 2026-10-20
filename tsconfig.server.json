@@ -8,5 +8,5 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["server/**/*.ts", "api/**/*.ts", "tests/api/**/*.ts", "eval/**/*.ts"]
+  "include": ["server/**/*.ts", "api/**/*.ts", "tests/api/**/*.ts", "eval/**/*.ts", "scripts/eval-narrative.ts"]
 }
