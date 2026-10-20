@@ -110,6 +110,15 @@ copy" standard)
 
 ## New consent-panel copy (this app's own behavior, not a provider's policy)
 
+> **Status update (Oct 2026):** the first paragraph below was inaccurate.
+> It said timestamps were never sent, but each check-in's `occurredAt`
+> (date and time) is sent, and it left out stress, mood, cycle, medication
+> dose and perceived effect, the range dates, and the safety ID passed to
+> the provider. The copy is now generated from the payload fields in
+> `src/features/ai-summary/consentFields.ts`, and `consentFields.test.ts`
+> fails if the copy and the payload diverge. The quoted text below is kept
+> as the original decision.
+
 This is the part we state with authority, because we control it. Replaces
 the current hardcoded-OpenAI paragraphs in
 `src/features/ai-summary/AiNarrativePanel.tsx:47-48`, provider-agnostic
