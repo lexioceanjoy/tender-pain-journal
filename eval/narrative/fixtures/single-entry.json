@@ -1,0 +1,46 @@
+{
+  "id": "single-entry",
+  "purpose": "One check-in only: the narrative must say the sample is too small and invent no trend.",
+  "range": {
+    "from": "2026-03-01",
+    "to": "2026-03-14"
+  },
+  "entries": [
+    {
+      "occurredAt": "2026-03-09T10:00:00.000Z",
+      "regions": [
+        "choir-b19"
+      ],
+      "intensity": 6,
+      "sensations": [
+        "sharp"
+      ],
+      "activities": [
+        "Lifting"
+      ]
+    }
+  ],
+  "expect": {
+    "mustMention": [
+      {
+        "fact": "only one check-in",
+        "any": [
+          "one check-in",
+          "one entry",
+          "single",
+          "only one",
+          "1 check-in",
+          "one record"
+        ]
+      }
+    ],
+    "mustNotMention": [],
+    "intensityValues": [
+      6
+    ],
+    "sides": [
+      "right"
+    ],
+    "entryCount": 1
+  }
+}

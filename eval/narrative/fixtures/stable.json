@@ -1,0 +1,129 @@
+{
+  "id": "stable",
+  "purpose": "Ten check-ins, all 4/10, same location: no trend to invent.",
+  "range": {
+    "from": "2026-03-01",
+    "to": "2026-03-20"
+  },
+  "entries": [
+    {
+      "occurredAt": "2026-03-01T09:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 4,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-03T09:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 4,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-05T09:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 4,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-07T09:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 4,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-09T09:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 4,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-11T09:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 4,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-13T09:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 4,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-15T09:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 4,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-17T09:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 4,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-19T09:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 4,
+      "sensations": [
+        "aching"
+      ]
+    }
+  ],
+  "expect": {
+    "mustMention": [
+      {
+        "fact": "steady 4/10",
+        "any": [
+          "4/10",
+          "4 out of 10"
+        ]
+      }
+    ],
+    "mustNotMention": [],
+    "intensityValues": [
+      4
+    ],
+    "sides": [
+      "left"
+    ],
+    "entryCount": 10
+  }
+}

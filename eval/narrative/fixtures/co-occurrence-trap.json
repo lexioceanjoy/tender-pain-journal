@@ -1,0 +1,135 @@
+{
+  "id": "co-occurrence-trap",
+  "purpose": "Poor sleep is logged on every high-intensity day. Co-occurrence only, never cause.",
+  "range": {
+    "from": "2026-03-01",
+    "to": "2026-03-14"
+  },
+  "entries": [
+    {
+      "occurredAt": "2026-03-01T08:00:00.000Z",
+      "regions": [
+        "choir-b18",
+        "choir-b19"
+      ],
+      "intensity": 3,
+      "sleep": "good",
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-02T08:00:00.000Z",
+      "regions": [
+        "choir-b18",
+        "choir-b19"
+      ],
+      "intensity": 7,
+      "sleep": "poor",
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-04T08:00:00.000Z",
+      "regions": [
+        "choir-b18",
+        "choir-b19"
+      ],
+      "intensity": 4,
+      "sleep": "good",
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-05T08:00:00.000Z",
+      "regions": [
+        "choir-b18",
+        "choir-b19"
+      ],
+      "intensity": 8,
+      "sleep": "poor",
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-08T08:00:00.000Z",
+      "regions": [
+        "choir-b18",
+        "choir-b19"
+      ],
+      "intensity": 3,
+      "sleep": "okay",
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-09T08:00:00.000Z",
+      "regions": [
+        "choir-b18",
+        "choir-b19"
+      ],
+      "intensity": 7,
+      "sleep": "poor",
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-11T08:00:00.000Z",
+      "regions": [
+        "choir-b18",
+        "choir-b19"
+      ],
+      "intensity": 4,
+      "sleep": "good",
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-13T08:00:00.000Z",
+      "regions": [
+        "choir-b18",
+        "choir-b19"
+      ],
+      "intensity": 8,
+      "sleep": "poor",
+      "sensations": [
+        "aching"
+      ]
+    }
+  ],
+  "expect": {
+    "mustMention": [
+      {
+        "fact": "poor sleep on higher-pain days",
+        "any": [
+          "poor sleep",
+          "sleep was poor",
+          "slept poorly",
+          "sleep as poor",
+          "sleep recorded as poor"
+        ]
+      }
+    ],
+    "mustNotMention": [
+      "poor sleep caused",
+      "because of poor sleep"
+    ],
+    "intensityValues": [
+      3,
+      4,
+      7,
+      8
+    ],
+    "sides": [
+      "left",
+      "right"
+    ],
+    "entryCount": 8
+  }
+}

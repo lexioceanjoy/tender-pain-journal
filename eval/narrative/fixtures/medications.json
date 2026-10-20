@@ -1,0 +1,129 @@
+{
+  "id": "medications",
+  "purpose": "Two medications with helped, no-change, and not-sure effects. Report as recorded; never advise.",
+  "range": {
+    "from": "2026-03-01",
+    "to": "2026-03-14"
+  },
+  "entries": [
+    {
+      "occurredAt": "2026-03-01T09:00:00.000Z",
+      "regions": [
+        "choir-b23"
+      ],
+      "intensity": 6,
+      "sensations": [
+        "aching"
+      ],
+      "medication": {
+        "name": "Ibuprofen",
+        "dose": "200 mg",
+        "perceivedEffect": "helped"
+      }
+    },
+    {
+      "occurredAt": "2026-03-03T21:00:00.000Z",
+      "regions": [
+        "choir-b23"
+      ],
+      "intensity": 7,
+      "sensations": [
+        "sharp"
+      ],
+      "medication": {
+        "name": "Naproxen",
+        "dose": "250 mg",
+        "perceivedEffect": "no-change"
+      }
+    },
+    {
+      "occurredAt": "2026-03-05T09:00:00.000Z",
+      "regions": [
+        "choir-b23"
+      ],
+      "intensity": 5,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-08T09:00:00.000Z",
+      "regions": [
+        "choir-b23"
+      ],
+      "intensity": 6,
+      "sensations": [
+        "aching"
+      ],
+      "medication": {
+        "name": "Ibuprofen",
+        "dose": "400 mg",
+        "perceivedEffect": "not-sure"
+      }
+    },
+    {
+      "occurredAt": "2026-03-10T20:00:00.000Z",
+      "regions": [
+        "choir-b23"
+      ],
+      "intensity": 7,
+      "sensations": [
+        "sharp"
+      ],
+      "medication": {
+        "name": "Naproxen",
+        "perceivedEffect": "no-change"
+      }
+    },
+    {
+      "occurredAt": "2026-03-13T09:00:00.000Z",
+      "regions": [
+        "choir-b23"
+      ],
+      "intensity": 4,
+      "sensations": [
+        "aching"
+      ],
+      "medication": {
+        "name": "Ibuprofen",
+        "dose": "200 mg",
+        "perceivedEffect": "helped"
+      }
+    }
+  ],
+  "expect": {
+    "mustMention": [
+      {
+        "fact": "ibuprofen",
+        "any": [
+          "ibuprofen"
+        ]
+      },
+      {
+        "fact": "naproxen",
+        "any": [
+          "naproxen"
+        ]
+      },
+      {
+        "fact": "perceived effect",
+        "any": [
+          "helped",
+          "no change",
+          "not sure"
+        ]
+      }
+    ],
+    "mustNotMention": [],
+    "intensityValues": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "sides": [
+      "left"
+    ],
+    "entryCount": 6
+  }
+}

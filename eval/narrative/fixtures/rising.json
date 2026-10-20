@@ -1,0 +1,171 @@
+{
+  "id": "rising",
+  "purpose": "Twelve check-ins trending from 2/10 to 8/10 at the left hip.",
+  "range": {
+    "from": "2026-03-01",
+    "to": "2026-03-24"
+  },
+  "entries": [
+    {
+      "occurredAt": "2026-03-01T09:00:00.000Z",
+      "regions": [
+        "choir-b22",
+        "choir-f23"
+      ],
+      "intensity": 2,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-03T09:00:00.000Z",
+      "regions": [
+        "choir-b22"
+      ],
+      "intensity": 2,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-05T09:00:00.000Z",
+      "regions": [
+        "choir-b22"
+      ],
+      "intensity": 3,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-07T09:00:00.000Z",
+      "regions": [
+        "choir-b22",
+        "choir-f23"
+      ],
+      "intensity": 3,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-09T09:00:00.000Z",
+      "regions": [
+        "choir-b22"
+      ],
+      "intensity": 4,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-11T09:00:00.000Z",
+      "regions": [
+        "choir-b22"
+      ],
+      "intensity": 4,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-13T09:00:00.000Z",
+      "regions": [
+        "choir-b22",
+        "choir-f23"
+      ],
+      "intensity": 5,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-15T09:00:00.000Z",
+      "regions": [
+        "choir-b22"
+      ],
+      "intensity": 5,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-17T09:00:00.000Z",
+      "regions": [
+        "choir-b22"
+      ],
+      "intensity": 6,
+      "sensations": [
+        "aching",
+        "sharp"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-19T09:00:00.000Z",
+      "regions": [
+        "choir-b22",
+        "choir-f23"
+      ],
+      "intensity": 7,
+      "sensations": [
+        "aching",
+        "sharp"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-21T09:00:00.000Z",
+      "regions": [
+        "choir-b22"
+      ],
+      "intensity": 7,
+      "sensations": [
+        "aching",
+        "sharp"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-23T09:00:00.000Z",
+      "regions": [
+        "choir-b22"
+      ],
+      "intensity": 8,
+      "sensations": [
+        "aching",
+        "sharp"
+      ]
+    }
+  ],
+  "expect": {
+    "mustMention": [
+      {
+        "fact": "rise from 2 to 8",
+        "any": [
+          "2 to 8",
+          "2/10 to 8/10",
+          "2–8",
+          "from 2"
+        ]
+      },
+      {
+        "fact": "hip",
+        "any": [
+          "hip"
+        ]
+      }
+    ],
+    "mustNotMention": [],
+    "intensityValues": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "sides": [
+      "left"
+    ],
+    "entryCount": 12
+  }
+}
