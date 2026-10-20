@@ -1,0 +1,105 @@
+{
+  "id": "long-gap",
+  "purpose": "Four check-ins, a three-week gap with nothing recorded, then three more. The gap is not improvement.",
+  "range": {
+    "from": "2026-03-01",
+    "to": "2026-04-07"
+  },
+  "entries": [
+    {
+      "occurredAt": "2026-03-02T09:00:00.000Z",
+      "regions": [
+        "choir-b23"
+      ],
+      "intensity": 5,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-04T09:00:00.000Z",
+      "regions": [
+        "choir-b23"
+      ],
+      "intensity": 6,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-06T19:00:00.000Z",
+      "regions": [
+        "choir-b23"
+      ],
+      "intensity": 5,
+      "sensations": [
+        "tight"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-09T08:00:00.000Z",
+      "regions": [
+        "choir-b23"
+      ],
+      "intensity": 6,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-31T09:00:00.000Z",
+      "regions": [
+        "choir-b23"
+      ],
+      "intensity": 6,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-04-03T10:00:00.000Z",
+      "regions": [
+        "choir-b23"
+      ],
+      "intensity": 5,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-04-06T18:00:00.000Z",
+      "regions": [
+        "choir-b23"
+      ],
+      "intensity": 7,
+      "sensations": [
+        "sharp"
+      ]
+    }
+  ],
+  "expect": {
+    "mustMention": [
+      {
+        "fact": "gap in records",
+        "any": [
+          "gap",
+          "no check-ins",
+          "no entries",
+          "no records",
+          "not recorded",
+          "nothing was recorded"
+        ]
+      }
+    ],
+    "mustNotMention": [],
+    "intensityValues": [
+      5,
+      6,
+      7
+    ],
+    "sides": [
+      "left"
+    ],
+    "entryCount": 7
+  }
+}

@@ -1,0 +1,138 @@
+{
+  "id": "precision-areas",
+  "purpose": "Tender detail areas on both sides: keep exact labels and sides; invent no anatomy.",
+  "range": {
+    "from": "2026-03-01",
+    "to": "2026-03-14"
+  },
+  "entries": [
+    {
+      "occurredAt": "2026-03-01T09:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 6,
+      "precisionAreas": [
+        "tender-detail-si-left"
+      ],
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-03T09:00:00.000Z",
+      "regions": [
+        "choir-b23"
+      ],
+      "intensity": 5,
+      "precisionAreas": [
+        "tender-detail-si-left",
+        "tender-detail-middle-glute-left"
+      ],
+      "sensations": [
+        "aching",
+        "tight"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-05T18:00:00.000Z",
+      "regions": [
+        "choir-b24"
+      ],
+      "intensity": 4,
+      "precisionAreas": [
+        "tender-detail-outer-hip-right"
+      ],
+      "sensations": [
+        "tight"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-07T09:00:00.000Z",
+      "regions": [
+        "choir-b18",
+        "choir-b19"
+      ],
+      "intensity": 6,
+      "precisionAreas": [
+        "tender-detail-tailbone"
+      ],
+      "sensations": [
+        "sharp"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-10T09:00:00.000Z",
+      "regions": [
+        "choir-b23"
+      ],
+      "intensity": 7,
+      "precisionAreas": [
+        "tender-detail-si-left",
+        "tender-detail-middle-glute-left"
+      ],
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-13T20:00:00.000Z",
+      "regions": [
+        "choir-b24"
+      ],
+      "intensity": 5,
+      "precisionAreas": [
+        "tender-detail-outer-hip-right"
+      ],
+      "sensations": [
+        "tight"
+      ]
+    }
+  ],
+  "expect": {
+    "mustMention": [
+      {
+        "fact": "SI-joint area",
+        "any": [
+          "SI-joint",
+          "SI joint"
+        ]
+      },
+      {
+        "fact": "outer hip",
+        "any": [
+          "outer hip"
+        ]
+      },
+      {
+        "fact": "middle glute",
+        "any": [
+          "middle glute",
+          "glute"
+        ]
+      },
+      {
+        "fact": "tailbone",
+        "any": [
+          "tailbone"
+        ]
+      }
+    ],
+    "mustNotMention": [
+      "piriformis",
+      "sciatic nerve",
+      "sacroiliac dysfunction"
+    ],
+    "intensityValues": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "sides": [
+      "left",
+      "right"
+    ],
+    "entryCount": 6
+  }
+}

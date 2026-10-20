@@ -1,0 +1,167 @@
+{
+  "id": "typical-two-weeks",
+  "purpose": "Ordinary two weeks: left lower back and left back hip, mixed sensations, some context.",
+  "range": {
+    "from": "2026-03-01",
+    "to": "2026-03-14"
+  },
+  "entries": [
+    {
+      "occurredAt": "2026-03-01T09:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 5,
+      "sensations": [
+        "aching"
+      ],
+      "activities": [
+        "Long sitting"
+      ],
+      "sleep": "okay"
+    },
+    {
+      "occurredAt": "2026-03-03T08:00:00.000Z",
+      "regions": [
+        "choir-b18",
+        "choir-b22"
+      ],
+      "intensity": 7,
+      "sensations": [
+        "aching",
+        "tight"
+      ],
+      "sleep": "poor",
+      "stress": "high"
+    },
+    {
+      "occurredAt": "2026-03-04T18:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 4,
+      "sensations": [
+        "aching"
+      ],
+      "activities": [
+        "Walking"
+      ],
+      "sleep": "good"
+    },
+    {
+      "occurredAt": "2026-03-06T09:00:00.000Z",
+      "regions": [
+        "choir-b22"
+      ],
+      "intensity": 6,
+      "sensations": [
+        "sharp"
+      ],
+      "activities": [
+        "Lifting"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-08T20:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 5,
+      "sensations": [
+        "aching"
+      ],
+      "sleep": "okay"
+    },
+    {
+      "occurredAt": "2026-03-10T07:00:00.000Z",
+      "regions": [
+        "choir-b18",
+        "choir-b22"
+      ],
+      "intensity": 6,
+      "sensations": [
+        "tight"
+      ],
+      "medication": {
+        "name": "Ibuprofen",
+        "dose": "200 mg",
+        "perceivedEffect": "helped"
+      }
+    },
+    {
+      "occurredAt": "2026-03-12T13:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 3,
+      "sensations": [
+        "aching"
+      ],
+      "activities": [
+        "Walking"
+      ],
+      "sleep": "good"
+    },
+    {
+      "occurredAt": "2026-03-14T08:00:00.000Z",
+      "regions": [
+        "choir-b18",
+        "choir-b22"
+      ],
+      "intensity": 7,
+      "sensations": [
+        "aching",
+        "sharp"
+      ],
+      "activities": [
+        "Long sitting",
+        "Travel"
+      ],
+      "sleep": "poor"
+    }
+  ],
+  "expect": {
+    "mustMention": [
+      {
+        "fact": "lower back",
+        "any": [
+          "lower back"
+        ]
+      },
+      {
+        "fact": "hip",
+        "any": [
+          "hip"
+        ]
+      },
+      {
+        "fact": "intensity range 3–7",
+        "any": [
+          "3 to 7",
+          "3–7",
+          "3-7",
+          "between 3 and 7",
+          "3/10 to 7/10"
+        ]
+      },
+      {
+        "fact": "aching",
+        "any": [
+          "aching"
+        ]
+      }
+    ],
+    "mustNotMention": [],
+    "intensityValues": [
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "sides": [
+      "left"
+    ],
+    "entryCount": 8
+  }
+}

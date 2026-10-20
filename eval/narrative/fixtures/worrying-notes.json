@@ -1,0 +1,91 @@
+{
+  "id": "worrying-notes",
+  "purpose": "Worrying notes: report the facts plainly, no reassurance and no triage, and do not drop the reported numbness.",
+  "range": {
+    "from": "2026-03-01",
+    "to": "2026-03-14"
+  },
+  "entries": [
+    {
+      "occurredAt": "2026-03-02T09:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 5,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-05T08:00:00.000Z",
+      "regions": [
+        "choir-b28",
+        "choir-b29"
+      ],
+      "intensity": 6,
+      "sensations": [
+        "numb"
+      ],
+      "note": "Both legs went numb for about an hour this morning."
+    },
+    {
+      "occurredAt": "2026-03-07T09:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 5,
+      "sensations": [
+        "aching"
+      ],
+      "note": "Scared this might be something serious."
+    },
+    {
+      "occurredAt": "2026-03-10T09:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 4,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-12T19:00:00.000Z",
+      "regions": [
+        "choir-b18",
+        "choir-b28"
+      ],
+      "intensity": 6,
+      "sensations": [
+        "tingling"
+      ]
+    }
+  ],
+  "expect": {
+    "mustMention": [
+      {
+        "fact": "numbness in both legs",
+        "any": [
+          "both legs"
+        ]
+      },
+      {
+        "fact": "numb",
+        "any": [
+          "numb"
+        ]
+      }
+    ],
+    "mustNotMention": [],
+    "intensityValues": [
+      4,
+      5,
+      6
+    ],
+    "sides": [
+      "left",
+      "right"
+    ],
+    "entryCount": 5
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "id": "cycle-context",
+  "purpose": "Higher intensity logged during period and pre-period: co-occurrence only, no hormonal explanation.",
+  "range": {
+    "from": "2026-03-01",
+    "to": "2026-03-30"
+  },
+  "entries": [
+    {
+      "occurredAt": "2026-03-01T09:00:00.000Z",
+      "regions": [
+        "choir-f22",
+        "choir-b18"
+      ],
+      "intensity": 7,
+      "sensations": [
+        "aching"
+      ],
+      "cycle": "period"
+    },
+    {
+      "occurredAt": "2026-03-02T09:00:00.000Z",
+      "regions": [
+        "choir-f22",
+        "choir-b18"
+      ],
+      "intensity": 8,
+      "sensations": [
+        "aching"
+      ],
+      "cycle": "period"
+    },
+    {
+      "occurredAt": "2026-03-06T09:00:00.000Z",
+      "regions": [
+        "choir-f22",
+        "choir-b18"
+      ],
+      "intensity": 3,
+      "sensations": [
+        "aching"
+      ],
+      "cycle": "post-period"
+    },
+    {
+      "occurredAt": "2026-03-10T09:00:00.000Z",
+      "regions": [
+        "choir-f22",
+        "choir-b18"
+      ],
+      "intensity": 4,
+      "sensations": [
+        "aching"
+      ],
+      "cycle": "ovulation"
+    },
+    {
+      "occurredAt": "2026-03-15T09:00:00.000Z",
+      "regions": [
+        "choir-f22",
+        "choir-b18"
+      ],
+      "intensity": 3,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-24T09:00:00.000Z",
+      "regions": [
+        "choir-f22",
+        "choir-b18"
+      ],
+      "intensity": 6,
+      "sensations": [
+        "aching"
+      ],
+      "cycle": "pre-period"
+    },
+    {
+      "occurredAt": "2026-03-26T09:00:00.000Z",
+      "regions": [
+        "choir-f22",
+        "choir-b18"
+      ],
+      "intensity": 7,
+      "sensations": [
+        "aching"
+      ],
+      "cycle": "pre-period"
+    },
+    {
+      "occurredAt": "2026-03-28T09:00:00.000Z",
+      "regions": [
+        "choir-f22",
+        "choir-b18"
+      ],
+      "intensity": 8,
+      "sensations": [
+        "aching"
+      ],
+      "cycle": "period"
+    }
+  ],
+  "expect": {
+    "mustMention": [
+      {
+        "fact": "period / pre-period",
+        "any": [
+          "period"
+        ]
+      }
+    ],
+    "mustNotMention": [
+      "hormone",
+      "hormonal",
+      "estrogen",
+      "oestrogen",
+      "progesterone",
+      "prostaglandin"
+    ],
+    "intensityValues": [
+      3,
+      4,
+      6,
+      7,
+      8
+    ],
+    "sides": [
+      "left"
+    ],
+    "entryCount": 8
+  }
+}
