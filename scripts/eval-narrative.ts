@@ -3,6 +3,7 @@
 //   npm run eval:narrative -- --label baseline              dry run: no API calls
 //   npm run eval:narrative -- --label baseline --confirm    live run: billed API calls
 //   npm run eval:narrative -- --compare <beforeDir> <afterDir>
+//   npm run eval:narrative -- --recheck <runDir> [--note "text"]   re-score saved narratives, no API calls
 //
 // Key handling: the provider key comes only from .env.local, read the same
 // way the local AI server reads it (loadEnvLocal). The shell environment is
@@ -26,11 +27,12 @@ const SAFETY_ID = 'tender-narrative-eval';
 const DEFAULT_SAMPLES = 3;
 
 type Args =
-  | { mode: 'run'; label: string; confirm: boolean; provider?: string; model?: string; samples: number }
-  | { mode: 'compare'; before: string; after: string };
+  | { mode: 'run'; label: string; confirm: boolean; provider?: string; model?: string; samples: number; note?: string }
+  | { mode: 'compare'; before: string; after: string }
+  | { mode: 'recheck'; dir: string; note?: string };
 
 function parseArgs(argv: string[]): Args {
-  const known = new Set(['--label', '--confirm', '--provider', '--model', '--samples', '--compare']);
+  const known = new Set(['--label', '--confirm', '--provider', '--model', '--samples', '--compare', '--recheck', '--note']);
   for (const arg of argv) {
     if (arg.startsWith('--') && !known.has(arg)) {
       // Deliberately no --key/--api-key: a key on the command line ends up
@@ -42,6 +44,11 @@ function parseArgs(argv: string[]): Args {
     const index = argv.indexOf(flag);
     return index === -1 ? undefined : argv[index + 1];
   };
+  if (argv.includes('--recheck')) {
+    const dir = value('--recheck');
+    if (!dir) throw new Error('Usage: --recheck <runDir> [--note "text"]');
+    return { mode: 'recheck', dir, note: value('--note') };
+  }
   const compareIndex = argv.indexOf('--compare');
   if (compareIndex !== -1) {
     const [before, after] = argv.slice(compareIndex + 1, compareIndex + 3);
@@ -52,7 +59,7 @@ function parseArgs(argv: string[]): Args {
   if (!label || !/^[a-z0-9-]+$/i.test(label)) throw new Error('Pass --label <name> (letters, numbers, hyphens).');
   const samples = Number(value('--samples') ?? DEFAULT_SAMPLES);
   if (!Number.isInteger(samples) || samples < 1 || samples > 5) throw new Error('--samples must be 1 to 5.');
-  return { mode: 'run', label, confirm: argv.includes('--confirm'), provider: value('--provider'), model: value('--model'), samples };
+  return { mode: 'run', label, confirm: argv.includes('--confirm'), provider: value('--provider'), model: value('--model'), samples, note: value('--note') };
 }
 
 // `vercel env pull` writes the Vercel project's variables, including the
@@ -125,7 +132,10 @@ async function run(args: Extract<Args, { mode: 'run' }>) {
 
   const outDir = join(RESULTS_DIR, `${timestamp()}-${args.label}`);
   mkdirSync(outDir, { recursive: true });
-  const record: RunRecord = { label: args.label, startedAt: new Date().toISOString(), config, samplesPerFixture: args.samples, fixtures: [] };
+  const record: RunRecord = {
+    label: args.label, startedAt: new Date().toISOString(), config, samplesPerFixture: args.samples, fixtures: [],
+    ...(args.note ? { notes: [args.note] } : {})
+  };
 
   for (const { fixture, request } of requests) {
     const samples: SampleResult[] = [];
@@ -158,6 +168,51 @@ async function run(args: Extract<Args, { mode: 'run' }>) {
   console.log(`Results: ${outDir}`);
 }
 
+function printResults(record: RunRecord) {
+  for (const fixture of record.fixtures) {
+    for (const sample of fixture.samples) {
+      const report = sample.report;
+      console.log(`${fixture.id} #${sample.sample}: ${report.passed ? 'PASS' : `FAIL (${[...new Set(report.failures.map((finding) => finding.check))].join(', ')})`}`);
+    }
+  }
+}
+
+// Re-scores the narratives already saved in a run with the current
+// checkers. Reads no .env.local and makes no API calls.
+function recheck(args: Extract<Args, { mode: 'recheck' }>) {
+  const dir = resolve(args.dir);
+  const original = readFileSync(join(dir, 'run.json'), 'utf8');
+  // Keep the first scoring so a re-check never erases what the run reported.
+  if (!existsSync(join(dir, 'run.original.json'))) writeFileSync(join(dir, 'run.original.json'), original);
+  const record = JSON.parse(original) as RunRecord;
+  const fixtures = new Map(loadFixtures().map((fixture) => [fixture.id, fixture]));
+  for (const result of record.fixtures) {
+    const fixture = fixtures.get(result.id);
+    if (!fixture) throw new Error(`Fixture ${result.id} no longer exists; this run can't be re-checked.`);
+    // The expectations must describe the same records the model was sent.
+    if (JSON.stringify(buildFixtureRequest(fixture)) !== JSON.stringify(result.request)) {
+      throw new Error(`Fixture ${result.id} has changed since this run; re-checking would score it against different records.`);
+    }
+    result.samples = result.samples.map((sample) => ({
+      ...sample,
+      report: checkNarrative({
+        narrative: sample.narrative, error: sample.error, expect: fixture.expect, range: fixture.range, inputText: fixtureInputText(result.request)
+      })
+    }));
+  }
+  const git = gitState();
+  record.rechecks = [...(record.rechecks ?? []), { at: new Date().toISOString(), gitCommit: `${git.commit}${git.dirty ? '+uncommitted' : ''}` }];
+  if (args.note) record.notes = [...(record.notes ?? []), args.note];
+  writeFileSync(join(dir, 'run.json'), `${JSON.stringify(record, null, 2)}\n`);
+  writeFileSync(join(dir, 'summary.md'), buildSummaryMarkdown(record));
+  writeFileSync(join(dir, 'review.html'), buildReviewHtml(record));
+  printResults(record);
+  const total = record.fixtures.reduce((count, fixture) => count + fixture.samples.length, 0);
+  const passed = record.fixtures.reduce((count, fixture) => count + fixture.samples.filter((sample) => sample.report.passed).length, 0);
+  console.log(`\nHard checks: ${passed} of ${total} passed (re-checked, no API calls).`);
+  console.log(`Updated: ${join(dir, 'review.html')}`);
+}
+
 function compare(args: Extract<Args, { mode: 'compare' }>) {
   const read = (dir: string) => JSON.parse(readFileSync(join(resolve(dir), 'run.json'), 'utf8')) as RunRecord;
   const before = read(args.before);
@@ -175,6 +230,7 @@ function compare(args: Extract<Args, { mode: 'compare' }>) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.mode === 'compare') compare(args);
+  else if (args.mode === 'recheck') recheck(args);
   else await run(args);
 }
 

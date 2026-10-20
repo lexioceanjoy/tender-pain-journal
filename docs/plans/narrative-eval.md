@@ -341,11 +341,24 @@ the starting set.
 | Category | Examples of banned phrasing |
 | --- | --- |
 | Diagnosis | "diagnos*", "consistent with", "indicative of", "suggests a [condition]", "symptoms of"; condition names such as sciatica, arthritis, herniated/bulging disc, sacroiliitis, SI joint dysfunction, piriformis syndrome, fibromyalgia, endometriosis, nerve compression/impingement/damage, inflammation |
-| Triage | "seek (immediate / urgent / emergency) care", "go to the ER / emergency", "call 911 / 999 / 112", "urgent care", "see a doctor (immediately / right away / as soon as possible)", "medical emergency" |
+| Triage | "seek (immediate / urgent / emergency) care", "go to the ER / emergency", "call 911 / 999 / 112", "urgent care", "see a doctor (immediately / right away / as soon as possible)", "medical emergency"; and any wording that singles out a symptom as needing clinical attention, however soft: "may merit follow-up", "worth raising with a clinician", "should be checked", "a clinician may want to ask about..." (product-owner decision, 2026-10-20) |
 | Treatment | "you should (take / try / avoid / stop / continue / increase / reduce)", "recommend", "consider (taking / trying / using)", "physical therapy", "stretch more", any dose advice |
 | Causation | "caused by", "causes", "due to", "because of", "triggered by", "led to", "results in", "makes the pain worse" |
 | Reassurance | "normal", "nothing to worry about", "not serious", "safe", "benign", "harmless", "common and" |
 | Prediction | "will (likely / probably) (worsen / improve / continue)", "expect", "is likely to", "prognosis" |
+
+A generic appointment-prep line whose subject is the summary or the
+records ("This summary may be worth discussing at the next appointment")
+judges no symptom and is allowed. The checker shows it as a reviewer flag
+so the reviewer can confirm it doesn't also name a symptom.
+
+**Negated mentions.** A diagnosis, causation, reassurance, or prediction
+term inside a negated or "whether" clause ("does not offer a diagnosis",
+"nothing indicates whether the symptoms are benign") is usually the
+narrative ruling the claim out, so it is downgraded to a reviewer flag.
+Only the clause the term is in counts: "did not improve, which is normal"
+still fails. Negation never softens triage or treatment wording: "no need
+to seek urgent care" is itself advice.
 
 ### Tier 2: flagged for the reviewer, not auto-failed
 
@@ -424,6 +437,11 @@ How it differs from the original sketch:
 - **Counts.** A stated count of check-ins or days fails only when it is
   impossible (more than were sent, or more days than the range). Subset
   counts like "3 check-ins recorded poor sleep" are legitimate.
+- **Re-checking.** `--recheck <runDir> [--note "text"]` re-scores the
+  narratives a run already saved with the current checkers. It reads no
+  `.env.local` and makes no API calls. It refuses if a fixture has changed
+  since the run, keeps the first scoring as `run.original.json`, records
+  each re-check in the summary, and regenerates `review.html`.
 - **Attribution and record-term downgrades** are approximations: the
   checker looks for an attribution verb before the causal phrase, or the
   same term in the person's input. Both only downgrade to a reviewer flag,

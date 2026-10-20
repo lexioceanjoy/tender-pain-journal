@@ -36,6 +36,10 @@ export type RunRecord = {
   config: RunConfig;
   samplesPerFixture: number;
   fixtures: FixtureResult[];
+  /** Free-text run notes, e.g. how the run's config compares to production. */
+  notes?: string[];
+  /** Each time the checks were re-run on the saved narratives (no API calls). */
+  rechecks?: Array<{ at: string; gitCommit: string }>;
 };
 
 export const RUBRIC = [
@@ -67,6 +71,8 @@ export function buildSummaryMarkdown(run: RunRecord) {
     `- Instructions SHA-256: \`${run.config.instructionsSha256}\``,
     `- Git commit: \`${run.config.gitCommit}\`${run.config.gitDirty ? ' (uncommitted changes present)' : ''}`,
     `- Hard checks: **${passed} of ${total}** narratives passed`,
+    ...(run.rechecks ?? []).map((recheck) => `- Re-checked ${recheck.at} with checkers at \`${recheck.gitCommit}\` (saved narratives, no API calls)`),
+    ...(run.notes?.length ? ['', '## Notes', '', ...run.notes.map((note) => `- ${note}`)] : []),
     '',
     '| Fixture | Samples passed | Failures | Reviewer flags | Scored sample |',
     '| --- | --- | --- | --- | --- |',

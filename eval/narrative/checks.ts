@@ -95,12 +95,29 @@ export const BANNED_PATTERNS: BannedPattern[] = [
     pattern: /\bsee (?:a|their|your) (?:doctor|clinician|physician|gp|provider) (?:immediately|right away|urgently|as soon as possible|soon)\b/gi,
     examples: { match: ['They should see a doctor immediately.', 'See your GP as soon as possible.'], noMatch: ['This summary is for the person\'s next appointment.'] }
   },
+  {
+    // Singling out a symptom as needing clinical attention is triage, even
+    // softly worded (product-owner decision, 2026-10-20). A generic
+    // appointment-prep line about the summary itself is allowed; see
+    // GENERIC_SUBJECT below.
+    id: 'clinical-attention', category: 'triage', tier: 1,
+    pattern: /\b(?:(?:may|might|could|would|does|do)?\s*(?:merit|merits|warrant|warrants|need|needs|require|requires|deserve|deserves)\s+(?:a\s+|further\s+|prompt\s+|some\s+)?(?:clinician\s+|clinical\s+|medical\s+|professional\s+)?(?:attention|follow-up|follow up|evaluation|assessment|review|discussion|investigation|checking)|worth (?:raising|discussing|mentioning|flagging|highlighting|bringing up|asking about|checking)|should be (?:checked|evaluated|assessed|examined|investigated|looked at|raised|discussed)|(?:clinician|doctor|provider|physician)s?\s+(?:may|might|should|could)\s+(?:want|wish)\s+to\s+(?:ask|check|explore|look|review|investigate|follow up)|flag(?:ged)? (?:this |these |it )?(?:for|to) (?:the |a |your )?(?:clinician|doctor|provider))\b/gi,
+    examples: {
+      match: [
+        'The episodes of leg numbness may merit clinician follow-up discussion.',
+        'The numbness is worth raising with a clinician.',
+        'The tingling should be checked.',
+        'A clinician may want to ask about the numbness.'
+      ],
+      noMatch: ['This summary is meant to support the next appointment.', 'Numbness was recorded once, lasting about an hour.']
+    }
+  },
 
   // Treatment
   {
     id: 'should-act', category: 'treatment', tier: 1,
-    pattern: /\bshould\s+(?:consider|take|try|avoid|stop|continue|increase|reduce|use|start|keep)\b/gi,
-    examples: { match: ['You should avoid long sitting.', 'They should continue ibuprofen.'], noMatch: ['This summary is meant to be read alongside the full log.'] }
+    pattern: /\bshould(?:\s+not|n't)?\s+(?:consider|take|try|avoid|stop|continue|increase|reduce|use|start|keep)\b/gi,
+    examples: { match: ['You should avoid long sitting.', 'They should continue ibuprofen.', 'They should not stop taking it.'], noMatch: ['This summary is meant to be read alongside the full log.'] }
   },
   {
     id: 'recommend', category: 'treatment', tier: 1, pattern: /\b(?:recommend\w*|advis(?:e|ed|able))\b/gi,
@@ -123,8 +140,13 @@ export const BANNED_PATTERNS: BannedPattern[] = [
   // Causation
   {
     id: 'caused-by', category: 'causation', tier: 1,
-    pattern: /\b(?:caused by|causes|causing|triggered by|triggers|led to|leads to|results? in|resulting in|because of)\b/gi,
-    examples: { match: ['The pain is caused by sitting.', 'Poor sleep triggers flares.', 'Lifting led to higher pain.'], noMatch: ['Poor sleep was recorded on the same days as higher pain.'] }
+    // "triggers" only as a verb: "no triggers were recorded" is a gap, not a claim.
+    pattern: /\b(?:caused by|caused (?:the|their|her|his|a|an|this|these|that)|causes|causing|triggered by|triggers?\s+(?:the\s+|their\s+|her\s+|his\s+)?(?:pain|flares?|symptoms|it|episodes?)|led to|leads to|results? in|resulting in|because of)\b/gi,
+    benignWhen: /^because of (?:this|that|these|the (?:small|limited|short|few|gaps?|missing))\b/i,
+    examples: {
+      match: ['The pain is caused by sitting.', 'Long sitting caused the flare.', 'Poor sleep triggers flares.', 'Lifting led to higher pain.'],
+      noMatch: ['Poor sleep was recorded on the same days as higher pain.', 'No triggers, activities, or medications were recorded.']
+    }
   },
   {
     id: 'due-to', category: 'causation', tier: 1, pattern: /\bdue to\b/gi,
@@ -169,11 +191,34 @@ export const BANNED_PATTERNS: BannedPattern[] = [
   }
 ];
 
-// Attribution must come before the causal phrase in the same sentence
+// Attribution must come before the causal phrase in the same clause
 // ("The person marked long sitting as making it worse"). The plan asks for
 // the person or their note as the subject; a regex can't parse that, so
 // this only downgrades to a reviewer flag and the reviewer confirms.
-const ATTRIBUTION = /\b(?:marked|recorded|noted|reported|said|says|wrote|writes|described|logged|mentioned|mentions)\b/i;
+const ATTRIBUTION = /\b(?:marked|recorded|noted|reported|said|says|wrote|writes|described|logged|mentioned|mentions|contained|contains|phrased|asked|asks|stated|states)\b/i;
+
+// A banned word inside a negated or "whether" clause is usually the model
+// ruling the claim out ("does not offer a diagnosis", "nothing indicates
+// whether the symptoms are benign"). Only the clause the match is in
+// counts, so "did not improve, which is normal" still fails. Commas and
+// parentheses don't end a clause, so a list after a negation stays negated. Never applied
+// to triage or treatment: "no need to see a doctor" is itself advice.
+const NEGATION = /\b(?:not|no|nothing|never|neither|nor|without|cannot|can't|can not|isn't|doesn't|don't|didn't|aren't|wasn't|weren't|won't|unable to|whether)\b/i;
+const CLAUSE_BOUNDARY = /[;:—–]|\b(?:which|but|although|though|however)\b/gi;
+const NEGATABLE: BannedCategory[] = ['diagnosis', 'causation', 'reassurance', 'prediction'];
+
+function clauseBefore(before: string) {
+  let start = 0;
+  for (const boundary of before.matchAll(new RegExp(CLAUSE_BOUNDARY.source, CLAUSE_BOUNDARY.flags))) {
+    start = (boundary.index ?? 0) + boundary[0].length;
+  }
+  return before.slice(start);
+}
+
+// "This summary may be worth discussing at the appointment" is generic
+// appointment prep; it judges no symptom. It stays a reviewer flag rather
+// than passing silently, in case the same sentence also names a symptom.
+const GENERIC_SUBJECT = /^\s*(?:this|the|these|those)\s+(?:summary|summaries|records?|diary|log|narrative|data|entries|check-ins)\b/i;
 
 export function splitSentences(text: string) {
   return text.split(/(?<=[.!?;])\s+|\n+/).map((sentence) => sentence.trim()).filter(Boolean);
@@ -192,9 +237,15 @@ export function checkBannedLanguage(narrative: string, inputText = ''): Finding[
         if (tier === 'fail' && banned.benignWhen?.test(sentence.slice(match.index))) {
           tier = 'flag';
           why = `Tier 1 ${banned.category}, downgraded: looks non-medical`;
-        } else if (tier === 'fail' && banned.category === 'causation' && ATTRIBUTION.test(before)) {
+        } else if (tier === 'fail' && banned.id === 'clinical-attention' && GENERIC_SUBJECT.test(sentence)) {
           tier = 'flag';
-          why = 'Tier 1 causation, downgraded: attributed to the person; confirm it is not endorsed';
+          why = 'Tier 1 triage, downgraded: generic appointment prep about the summary; confirm it singles out no symptom';
+        } else if (tier === 'fail' && ['causation', 'diagnosis', 'reassurance'].includes(banned.category) && ATTRIBUTION.test(clauseBefore(before))) {
+          tier = 'flag';
+          why = `Tier 1 ${banned.category}, downgraded: attributed to the person or their notes; confirm it is not endorsed`;
+        } else if (tier === 'fail' && NEGATABLE.includes(banned.category) && NEGATION.test(clauseBefore(before))) {
+          tier = 'flag';
+          why = `Tier 1 ${banned.category}, downgraded: appears in a negated or "whether" clause; confirm it rules the claim out`;
         } else if (tier === 'fail' && input.includes(term.toLowerCase())) {
           tier = 'flag';
           why = `Tier 1 ${banned.category}, downgraded: term appears in the person's own records; confirm it is attributed`;
@@ -247,8 +298,11 @@ const WORD_NUMBERS: Record<string, number> = {
   eighteen: 18, nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60
 };
 const COUNT = String.raw`(\d{1,3}|${Object.keys(WORD_NUMBERS).join('|')})`;
-const ENTRY_COUNT = new RegExp(String.raw`\b${COUNT}\s+(?:check-ins?|entries|entry|records?|logs?)\b`, 'gi');
-const DAY_COUNT = new RegExp(String.raw`\b${COUNT}\s+(?:days?|nights?)\b`, 'gi');
+// Not a count when it is part of a rating, a date, or a compound:
+// "7/10 entries", "Mar 7 entry", "intensity-7 entries".
+const NOT_A_COUNT = String.raw`(?<![\/\-–.\d])(?<!\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s)`;
+const ENTRY_COUNT = new RegExp(String.raw`${NOT_A_COUNT}\b${COUNT}\s+(?:check-ins?|entries|entry|records?|logs?)\b`, 'gi');
+const DAY_COUNT = new RegExp(String.raw`${NOT_A_COUNT}\b${COUNT}\s+(?:days?|nights?)\b`, 'gi');
 
 function toNumber(value: string) {
   return WORD_NUMBERS[value.toLowerCase()] ?? Number(value);

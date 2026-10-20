@@ -31,6 +31,15 @@ describe('review output', () => {
     expect(summary).toContain('| injection-notes | 1/1 |');
   });
 
+  it('lists run notes and re-checks in the summary', () => {
+    const run = { ...runWith('baseline', 'model-one', 'Pain in the left lower back was rated 5/10.'),
+      notes: ['Production uses the same default model.'], rechecks: [{ at: '2026-10-20T20:00:00.000Z', gitCommit: 'abc1234' }] };
+    const summary = buildSummaryMarkdown(run);
+    expect(summary).toContain('## Notes');
+    expect(summary).toContain('- Production uses the same default model.');
+    expect(summary).toContain('Re-checked 2026-10-20T20:00:00.000Z with checkers at `abc1234`');
+  });
+
   it('keeps the before/after page blind and puts the key elsewhere', () => {
     const before = runWith('before-label', 'model-before', 'Pain in the left lower back was rated 5/10.');
     const after = runWith('after-label', 'model-after', 'Pain in the left lower back was rated 6/10.');
