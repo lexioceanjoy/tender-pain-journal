@@ -6,9 +6,10 @@ import { z } from 'zod';
 // buildAiSummaryRequest() pulls in body-map label lookups that don't
 // resolve under Vercel's strict ESM serverless runtime (no extensionless
 // relative imports there, unlike Vite's client bundle).
+// No dose: it never leaves the device (docs/plans/narrative-v2.md). z.object
+// strips unknown keys, so a dose from an older cached client is dropped here.
 const medicationSchema = z.object({
   name: z.string().max(120),
-  dose: z.string().max(80).optional(),
   perceivedEffect: z.string().max(40).optional()
 });
 

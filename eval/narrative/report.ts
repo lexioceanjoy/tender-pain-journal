@@ -101,7 +101,7 @@ function recordsTable(request: AiSummaryRequest) {
         entry.mood ? `Mood: ${entry.mood}` : '',
         entry.cycle ? `Cycle: ${entry.cycle}` : '',
         entry.medications?.length
-          ? `Medication: ${entry.medications.map((medication) => [medication.name, medication.dose, medication.perceivedEffect].filter(Boolean).join(' ')).join('; ')}`
+          ? `Medication: ${entry.medications.map((medication) => [medication.name, (medication as { dose?: string }).dose, medication.perceivedEffect].filter(Boolean).join(' ')).join('; ')}`
           : '',
         entry.note ? `Note: “${entry.note}”` : ''
       ].filter(Boolean).join(' · ');

@@ -27,9 +27,18 @@ describe('server/api module boundaries', () => {
     expect(source).not.toMatch(/from ['"]\.\.\/src\/features\/ai-summary\/aiSummary\.js['"]/);
   });
 
-  it('server/providers/types.ts imports the schema-only module, never the client aggregator', () => {
+  it('server/providers/types.ts imports the findings module, never the client aggregator', () => {
     const source = read('server/providers/types.ts');
-    expect(source).toContain("from '../../src/features/ai-summary/aiSummarySchema.js'");
+    expect(source).toContain("from '../../src/features/ai-summary/narrativeFindings.js'");
     expect(source).not.toMatch(/from ['"]\.\.\/\.\.\/src\/features\/ai-summary\/aiSummary\.js['"]/);
+  });
+
+  // Shared by the browser and the server: it may import types only, since
+  // any runtime import from src/ would need to resolve under strict ESM.
+  it('narrativeFindings.ts has type-only imports', () => {
+    const source = read('src/features/ai-summary/narrativeFindings.ts');
+    const imports = source.match(/^import .*$/gm) ?? [];
+    expect(imports.every((line) => line.startsWith('import type '))).toBe(true);
+    expect(source).not.toMatch(/localStorage|body-map/);
   });
 });

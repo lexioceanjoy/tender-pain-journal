@@ -14,6 +14,7 @@ import { createHash, randomInt } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { loadEnvLocal, resolveActiveProviderConfig } from '../server/app';
+import { createAiNarrative } from '../server/aiService';
 import { AI_SUMMARY_INSTRUCTIONS } from '../server/providers/instructions';
 import { checkNarrative } from '../eval/narrative/checks';
 import { buildFixtureRequest, fixtureInputText, loadFixtures } from '../eval/narrative/fixtures';
@@ -143,7 +144,10 @@ async function run(args: Extract<Args, { mode: 'run' }>) {
       let narrative: string | undefined;
       let error: string | undefined;
       try {
-        narrative = await provider.createNarrative(request, SAFETY_ID, { apiKey, model });
+        // The server's path: pre-gate, findings, provider, limits sentence, length discard.
+        const result = await createAiNarrative(provider, request, SAFETY_ID, { apiKey, model });
+        if ('narrative' in result) narrative = result.narrative;
+        else error = `Pre-gated: ${result.gate.reason}`;
       } catch (failure) {
         // safeError() maps to a fixed, non-leaking message; the raw error
         // is never printed or stored.

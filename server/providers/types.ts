@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { AiSummaryRequest } from '../../src/features/ai-summary/aiSummarySchema.js';
+import type { NarrativeFindings } from '../../src/features/ai-summary/narrativeFindings.js';
 
 export type ProviderName = 'openai' | 'anthropic';
 
@@ -22,8 +22,9 @@ export const providerConsentMetadataSchema = z.object({
 });
 
 export interface AiProvider extends z.infer<typeof providerConsentMetadataSchema> {
+  /** Receives computed findings only, never the diary records (narrative v2). */
   createNarrative(
-    payload: AiSummaryRequest,
+    findings: NarrativeFindings,
     safetyId: string,
     config: AiProviderConfig
   ): Promise<string>;
