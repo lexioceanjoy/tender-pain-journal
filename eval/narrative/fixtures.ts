@@ -26,7 +26,9 @@ export const fixtureSchema = z.object({
     intensityValues: z.array(z.number().int().min(0).max(10)).min(1),
     sides: z.array(z.enum(['left', 'right'])),
     entryCount: z.number().int().min(1),
-    canaries: z.array(z.string().min(1)).optional()
+    canaries: z.array(z.string().min(1)).optional(),
+    /** The pre-gate this fixture must hit: no API call, the fixed message instead. */
+    preGate: z.enum(['too-few-entries', 'all-identical']).optional()
   })
 });
 
@@ -53,7 +55,8 @@ export function buildFixtureRequest(fixture: Fixture): AiSummaryRequest {
   const entries = fixture.entries
     .map((input) => createPainEntry(input as PainEntryInput))
     .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
-  return buildAiSummaryRequest(entries, fixture.range.from, fixture.range.to);
+  // UTC (offset 0), so fixture dates don't depend on the machine's time zone.
+  return buildAiSummaryRequest(entries, fixture.range.from, fixture.range.to, () => 0);
 }
 
 // Text from the person's own records. A Tier 1 term that also appears

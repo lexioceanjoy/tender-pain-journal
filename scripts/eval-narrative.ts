@@ -14,9 +14,9 @@ import { createHash, randomInt } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { loadEnvLocal, resolveActiveProviderConfig } from '../server/app';
-import { createAiNarrative } from '../server/aiService';
+import { createAiNarrative, NarrativeTooLongError, prepareNarrative, TOO_LONG_NARRATIVE_MESSAGE } from '../server/aiService';
 import { AI_SUMMARY_INSTRUCTIONS } from '../server/providers/instructions';
-import { checkNarrative } from '../eval/narrative/checks';
+import { checkGate, checkNarrative } from '../eval/narrative/checks';
 import { buildFixtureRequest, fixtureInputText, loadFixtures } from '../eval/narrative/fixtures';
 import {
   buildCompareHtml, buildReviewHtml, buildSummaryMarkdown,
@@ -108,8 +108,13 @@ async function run(args: Extract<Args, { mode: 'run' }>) {
   const { provider, apiKey, model } = resolveActiveProviderConfig(env);
 
   const fixtures = loadFixtures();
-  const requests = fixtures.map((fixture) => ({ fixture, request: buildFixtureRequest(fixture) }));
-  const calls = fixtures.length * args.samples;
+  // The same validation, pre-gate and findings the server runs for the app.
+  const requests = fixtures.map((fixture) => {
+    const request = buildFixtureRequest(fixture);
+    return { fixture, request, prepared: prepareNarrative(request) };
+  });
+  const live = requests.filter(({ prepared }) => 'findings' in prepared);
+  const calls = live.length * args.samples;
   const git = gitState();
   const config = {
     provider: provider.name,
@@ -121,7 +126,7 @@ async function run(args: Extract<Args, { mode: 'run' }>) {
 
   console.log(`Provider: ${provider.displayName}  Model: ${model}`);
   console.log(`Key ${provider.apiKeyEnvVar} in .env.local: ${apiKey ? 'present' : 'MISSING'}`);
-  console.log(`Fixtures: ${fixtures.length}  Samples each: ${args.samples}  API calls: ${calls}`);
+  console.log(`Fixtures: ${fixtures.length} (${live.length} live, ${fixtures.length - live.length} pre-gated)  Samples each: ${args.samples}  API calls: ${calls}`);
   console.log(`Git: ${git.commit}${git.dirty ? ' (uncommitted changes)' : ''}`);
 
   if (!args.confirm) {
@@ -138,28 +143,48 @@ async function run(args: Extract<Args, { mode: 'run' }>) {
     ...(args.note ? { notes: [args.note] } : {})
   };
 
-  for (const { fixture, request } of requests) {
+  for (const { fixture, request, prepared } of requests) {
+    if ('gate' in prepared || fixture.expect.preGate) {
+      // No API call: a gated fixture is checked against its expected gate.
+      const gate = 'gate' in prepared ? prepared.gate : undefined;
+      const gateReport = checkGate(fixture.expect.preGate, gate);
+      record.fixtures.push({ id: fixture.id, purpose: fixture.purpose, request, samples: [], gate, gateReport });
+      console.log(`${fixture.id}: ${gateReport.passed ? `GATE ${gate?.reason} (expected)` : `FAIL (${gateReport.failures.map((finding) => finding.detail).join('; ')})`}`);
+      writeFileSync(join(outDir, 'run.json'), `${JSON.stringify(record, null, 2)}\n`);
+      continue;
+    }
     const samples: SampleResult[] = [];
     for (let sample = 1; sample <= args.samples; sample += 1) {
       let narrative: string | undefined;
       let error: string | undefined;
+      let discarded: string | undefined;
       try {
-        // The server's path: pre-gate, findings, provider, limits sentence, length discard.
+        // The production path: pre-gate, findings, provider, limits
+        // sentence, and the 250-word discard (server/aiService.ts).
         const result = await createAiNarrative(provider, request, SAFETY_ID, { apiKey, model });
         if ('narrative' in result) narrative = result.narrative;
-        else error = `Pre-gated: ${result.gate.reason}`;
+        else error = `Unexpected gate: ${result.gate.reason}`;
       } catch (failure) {
-        // safeError() maps to a fixed, non-leaking message; the raw error
-        // is never printed or stored.
-        error = provider.safeError(failure);
+        if (failure instanceof NarrativeTooLongError) {
+          error = TOO_LONG_NARRATIVE_MESSAGE;
+          discarded = failure.discarded;
+        } else {
+          // safeError() maps to a fixed, non-leaking message; the raw error
+          // is never printed or stored.
+          error = provider.safeError(failure);
+        }
       }
-      const report = checkNarrative({ narrative, error, expect: fixture.expect, range: fixture.range, inputText: fixtureInputText(request) });
-      samples.push({ sample, narrative, error, report });
+      const report = checkNarrative({
+        narrative, error, expect: fixture.expect, range: fixture.range, inputText: fixtureInputText(request), findings: prepared.findings
+      });
+      samples.push({ sample, narrative, error, ...(discarded ? { discarded } : {}), report });
       // Terminal output is fixture ids and pass/fail only, never narrative
       // text or payloads.
       console.log(`${fixture.id} #${sample}: ${report.passed ? 'PASS' : `FAIL (${[...new Set(report.failures.map((finding) => finding.check))].join(', ')})`}`);
     }
-    const result: FixtureResult = { id: fixture.id, purpose: fixture.purpose, request, samples, scoredSample: randomInt(1, args.samples + 1) };
+    const result: FixtureResult = {
+      id: fixture.id, purpose: fixture.purpose, request, findings: prepared.findings, samples, scoredSample: randomInt(1, args.samples + 1)
+    };
     record.fixtures.push(result);
     // Written after every fixture so an interrupted run keeps what it has.
     writeFileSync(join(outDir, 'run.json'), `${JSON.stringify(record, null, 2)}\n`);
@@ -168,12 +193,15 @@ async function run(args: Extract<Args, { mode: 'run' }>) {
   writeFileSync(join(outDir, 'summary.md'), buildSummaryMarkdown(record));
   writeFileSync(join(outDir, 'review.html'), buildReviewHtml(record));
   const passed = record.fixtures.reduce((count, fixture) => count + fixture.samples.filter((sample) => sample.report.passed).length, 0);
+  const gates = record.fixtures.filter((fixture) => fixture.gateReport);
   console.log(`\nHard checks: ${passed} of ${calls} passed.`);
+  console.log(`Pre-gates: ${gates.filter((fixture) => fixture.gateReport!.passed).length} of ${gates.length} as expected.`);
   console.log(`Results: ${outDir}`);
 }
 
 function printResults(record: RunRecord) {
   for (const fixture of record.fixtures) {
+    if (fixture.gateReport) console.log(`${fixture.id}: ${fixture.gateReport.passed ? `GATE ${fixture.gate?.reason} (expected)` : 'FAIL (pre-gate)'}`);
     for (const sample of fixture.samples) {
       const report = sample.report;
       console.log(`${fixture.id} #${sample.sample}: ${report.passed ? 'PASS' : `FAIL (${[...new Set(report.failures.map((finding) => finding.check))].join(', ')})`}`);
@@ -197,10 +225,12 @@ function recheck(args: Extract<Args, { mode: 'recheck' }>) {
     if (JSON.stringify(buildFixtureRequest(fixture)) !== JSON.stringify(result.request)) {
       throw new Error(`Fixture ${result.id} has changed since this run; re-checking would score it against different records.`);
     }
+    if (result.gateReport) result.gateReport = checkGate(fixture.expect.preGate, result.gate);
     result.samples = result.samples.map((sample) => ({
       ...sample,
       report: checkNarrative({
-        narrative: sample.narrative, error: sample.error, expect: fixture.expect, range: fixture.range, inputText: fixtureInputText(result.request)
+        narrative: sample.narrative, error: sample.error, expect: fixture.expect, range: fixture.range,
+        inputText: fixtureInputText(result.request), findings: result.findings
       })
     }));
   }

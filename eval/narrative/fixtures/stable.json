@@ -124,6 +124,7 @@
     "sides": [
       "left"
     ],
-    "entryCount": 10
+    "entryCount": 10,
+    "preGate": "all-identical"
   }
 }

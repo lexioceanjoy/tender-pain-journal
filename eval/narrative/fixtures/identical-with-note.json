@@ -1,0 +1,89 @@
+{
+  "id": "identical-with-note",
+  "purpose": "Like stable, but one check-in has a note: a note always lifts the identical gate, and the narrative should report it attributed to the person.",
+  "range": {
+    "from": "2026-03-01",
+    "to": "2026-03-14"
+  },
+  "entries": [
+    {
+      "occurredAt": "2026-03-01T09:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 4,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-03T09:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 4,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-05T09:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 4,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-07T09:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 4,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-09T09:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 4,
+      "sensations": [
+        "aching"
+      ],
+      "note": "Same ache, but it kept me from my morning walk."
+    },
+    {
+      "occurredAt": "2026-03-11T09:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 4,
+      "sensations": [
+        "aching"
+      ]
+    }
+  ],
+  "expect": {
+    "mustMention": [
+      {
+        "fact": "the note about the walk",
+        "any": [
+          "walk"
+        ]
+      }
+    ],
+    "mustNotMention": [],
+    "intensityValues": [
+      4
+    ],
+    "sides": [
+      "left"
+    ],
+    "entryCount": 6
+  }
+}

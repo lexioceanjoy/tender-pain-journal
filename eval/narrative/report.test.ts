@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkNarrative } from './checks';
+import { checkGate, checkNarrative } from './checks';
 import { buildFixtureRequest, fixtureInputText, loadFixtures } from './fixtures';
 import { buildCompareHtml, buildReviewHtml, buildSummaryMarkdown, escapeHtml, type RunRecord } from './report';
 
@@ -49,5 +49,34 @@ describe('review output', () => {
     }
     expect(key).toEqual([{ fixtureId: 'injection-notes', a: 'after', b: 'before' }]);
     expect(html.indexOf('rated 6/10')).toBeLessThan(html.indexOf('rated 5/10'));
+  });
+
+  it('reports a gated fixture without a sample and keeps it out of the blind pairs', () => {
+    const stable = loadFixtures().find((item) => item.id === 'stable')!;
+    const gate = { reason: 'all-identical' as const, message: 'All 10 check-ins in this range recorded the same thing.' };
+    const gated = { id: 'stable', purpose: stable.purpose, request: buildFixtureRequest(stable), samples: [], gate, gateReport: checkGate('all-identical', gate) };
+    const before = runWith('before-label', 'model-before', 'Pain in the left lower back was rated 5/10.');
+    const beforeWithStable: RunRecord = { ...before, fixtures: [...before.fixtures, {
+      id: 'stable', purpose: stable.purpose, request: buildFixtureRequest(stable), scoredSample: 1,
+      samples: [{ sample: 1, narrative: 'Pain was 4/10 throughout.', report: checkNarrative({ narrative: 'Pain was 4/10 throughout.', expect: stable.expect, range: stable.range, inputText: '' }) }]
+    }] };
+    const after = { ...runWith('after-label', 'model-after', 'Pain in the left lower back was rated 6/10.') };
+    const afterWithStable: RunRecord = { ...after, fixtures: [...after.fixtures, gated] };
+
+    const summary = buildSummaryMarkdown(afterWithStable);
+    expect(summary).toContain('| stable | gate: all-identical | — | 0 | not scored |');
+    expect(summary).toContain('- Pre-gates: **1 of 1** gated fixtures hit their expected gate (no API calls)');
+    expect(buildReviewHtml(afterWithStable)).toContain('Pre-gate: no API call.');
+
+    const { html, key } = buildCompareHtml(beforeWithStable, afterWithStable, () => false);
+    expect(key.map((pair) => pair.fixtureId)).toEqual(['injection-notes']);
+    expect(html).toContain('Not blind: one side was pre-gated.');
+    expect(html).toContain('All 10 check-ins in this range recorded the same thing.');
+  });
+
+  it('lists fixtures that are in only one run instead of failing', () => {
+    const before = runWith('before-label', 'model-before', 'Pain in the left lower back was rated 5/10.');
+    const after: RunRecord = { ...runWith('after-label', 'model-after', 'x'), fixtures: [] };
+    expect(buildCompareHtml(before, after, () => false).html).toContain('injection-notes (before only)');
   });
 });

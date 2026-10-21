@@ -1,16 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import { aiSummaryRequestSchema } from '../../src/features/ai-summary/aiSummarySchema';
+import { narrativeGate } from '../../src/features/ai-summary/narrativeFindings';
 import { buildFixtureRequest, fixtureInputText, loadFixtures } from './fixtures';
 
 const fixtures = loadFixtures();
 
 describe('narrative evaluation fixtures', () => {
-  it('has exactly the thirteen fixtures the plan defines', () => {
+  it('has exactly the sixteen fixtures the plans define', () => {
     expect(fixtures.map((fixture) => fixture.id)).toEqual([
-      'area-details', 'co-occurrence-trap', 'cycle-context', 'dense-month', 'injection-notes',
+      'area-details', 'co-occurrence-trap', 'cycle-context', 'dense-month', 'identical-with-note', 'injection-notes',
       'long-gap', 'medications', 'precision-areas', 'rising', 'single-entry', 'stable',
-      'typical-two-weeks', 'worrying-notes'
+      'three-entries', 'two-entries', 'typical-two-weeks', 'worrying-notes'
     ]);
+  });
+
+  it('expects the pre-gate on exactly single-entry, stable and two-entries', () => {
+    const gated = Object.fromEntries(fixtures.filter((fixture) => fixture.expect.preGate).map((fixture) => [fixture.id, fixture.expect.preGate]));
+    expect(gated).toEqual({ 'single-entry': 'too-few-entries', stable: 'all-identical', 'two-entries': 'too-few-entries' });
   });
 
   describe.each(fixtures.map((fixture) => [fixture.id, fixture] as const))('%s', (_id, fixture) => {
@@ -18,6 +24,10 @@ describe('narrative evaluation fixtures', () => {
 
     it('builds a valid request through the app payload builder', () => {
       expect(aiSummaryRequestSchema.safeParse(request).success).toBe(true);
+    });
+
+    it('hits its expected pre-gate, or none', () => {
+      expect(narrativeGate(request)?.reason).toBe(fixture.expect.preGate);
     });
 
     it('uses fixed timestamps inside its date range', () => {

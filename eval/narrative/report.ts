@@ -1,4 +1,5 @@
 import type { AiSummaryRequest } from '../../src/features/ai-summary/aiSummary';
+import type { NarrativeFindings, NarrativeGate } from '../../src/features/ai-summary/narrativeFindings';
 import type { CheckReport } from './checks';
 
 // Output side of the harness: run records, summary.md, and the blinded
@@ -16,8 +17,10 @@ export type RunConfig = {
 export type SampleResult = {
   sample: number;
   narrative?: string;
-  /** provider.safeError() output only; never a raw SDK error. */
+  /** provider.safeError() output, or the server's fixed too-long message; never a raw SDK error. */
   error?: string;
+  /** A narrative the server discarded for length: kept for the reviewer, never shown in the app. */
+  discarded?: string;
   report: CheckReport;
 };
 
@@ -26,8 +29,13 @@ export type FixtureResult = {
   purpose: string;
   request: AiSummaryRequest;
   samples: SampleResult[];
-  /** Chosen at random by the harness, not by the reviewer. */
-  scoredSample: number;
+  /** Chosen at random by the harness, not by the reviewer. Absent for a gated fixture. */
+  scoredSample?: number;
+  /** Narrative v2: the pre-gate hit instead of an API call, and its check. */
+  gate?: NarrativeGate;
+  gateReport?: CheckReport;
+  /** Narrative v2: exactly what the provider was sent. */
+  findings?: NarrativeFindings;
 };
 
 export type RunRecord = {
@@ -60,9 +68,15 @@ export function escapeHtml(value: string) {
     .replace(/'/g, '&#39;');
 }
 
+function isGated(fixture: FixtureResult) {
+  return fixture.gateReport !== undefined;
+}
+
 export function buildSummaryMarkdown(run: RunRecord) {
   const total = run.fixtures.reduce((count, fixture) => count + fixture.samples.length, 0);
   const passed = run.fixtures.reduce((count, fixture) => count + fixture.samples.filter((sample) => sample.report.passed).length, 0);
+  const gated = run.fixtures.filter(isGated);
+  const gatesPassed = gated.filter((fixture) => fixture.gateReport!.passed).length;
   const lines = [
     `# Narrative evaluation: ${run.label}`,
     '',
@@ -71,16 +85,21 @@ export function buildSummaryMarkdown(run: RunRecord) {
     `- Instructions SHA-256: \`${run.config.instructionsSha256}\``,
     `- Git commit: \`${run.config.gitCommit}\`${run.config.gitDirty ? ' (uncommitted changes present)' : ''}`,
     `- Hard checks: **${passed} of ${total}** narratives passed`,
+    ...(gated.length ? [`- Pre-gates: **${gatesPassed} of ${gated.length}** gated fixtures hit their expected gate (no API calls)`] : []),
     ...(run.rechecks ?? []).map((recheck) => `- Re-checked ${recheck.at} with checkers at \`${recheck.gitCommit}\` (saved narratives, no API calls)`),
     ...(run.notes?.length ? ['', '## Notes', '', ...run.notes.map((note) => `- ${note}`)] : []),
     '',
     '| Fixture | Samples passed | Failures | Reviewer flags | Scored sample |',
     '| --- | --- | --- | --- | --- |',
     ...run.fixtures.map((fixture) => {
+      if (isGated(fixture)) {
+        const report = fixture.gateReport!;
+        return `| ${fixture.id} | gate: ${fixture.gate?.reason ?? 'none'} | ${report.passed ? '—' : report.failures.map((finding) => finding.detail).join('; ')} | 0 | not scored |`;
+      }
       const ok = fixture.samples.filter((sample) => sample.report.passed).length;
       const failures = fixture.samples.flatMap((sample) => sample.report.failures.map((finding) => `#${sample.sample} ${finding.check}`));
       const flags = fixture.samples.reduce((count, sample) => count + sample.report.flags.length, 0);
-      return `| ${fixture.id} | ${ok}/${fixture.samples.length} | ${failures.length ? failures.join(', ') : '—'} | ${flags} | #${fixture.scoredSample} |`;
+      return `| ${fixture.id} | ${ok}/${fixture.samples.length} | ${failures.length ? failures.join(', ') : '—'} | ${flags} | #${fixture.scoredSample ?? '—'} |`;
     }),
     '',
     'Hard-check failures are listed in run.json with the sentence each one is about.',
@@ -101,6 +120,7 @@ function recordsTable(request: AiSummaryRequest) {
         entry.mood ? `Mood: ${entry.mood}` : '',
         entry.cycle ? `Cycle: ${entry.cycle}` : '',
         entry.medications?.length
+          // Runs from before narrative v2 also recorded a dose.
           ? `Medication: ${entry.medications.map((medication) => [medication.name, (medication as { dose?: string }).dose, medication.perceivedEffect].filter(Boolean).join(' ')).join('; ')}`
           : '',
         entry.note ? `Note: “${entry.note}”` : ''
@@ -130,9 +150,30 @@ function rubricInputs(name: string) {
 }
 
 function narrativeBlock(sample: SampleResult) {
-  return sample.narrative
-    ? `<blockquote>${escapeHtml(sample.narrative).replace(/\n/g, '<br>')}</blockquote><p class="meta">${sample.report.wordCount} words</p>`
-    : `<p class="fail">No narrative: ${escapeHtml(sample.error ?? 'missing')}</p>`;
+  if (sample.narrative) {
+    return `<blockquote>${escapeHtml(sample.narrative).replace(/\n/g, '<br>')}</blockquote><p class="meta">${sample.report.wordCount} words</p>`;
+  }
+  return `<p class="fail">No narrative: ${escapeHtml(sample.error ?? 'missing')}</p>`
+    + (sample.discarded ? `<details><summary>Discarded text (never shown in the app)</summary><blockquote>${escapeHtml(sample.discarded).replace(/\n/g, '<br>')}</blockquote></details>` : '');
+}
+
+function gateBlock(fixture: FixtureResult) {
+  const report = fixture.gateReport!;
+  return `<p class="meta">Pre-gate: no API call. Not scored on the rubric; read the message once.</p>`
+    + (fixture.gate ? `<blockquote>${escapeHtml(fixture.gate.message)}</blockquote>` : '<p class="fail">No gate was hit.</p>')
+    + findingsList(report);
+}
+
+function findingsSent(fixture: FixtureResult) {
+  return fixture.findings
+    ? `<details><summary>Findings sent to the model</summary><pre>${escapeHtml(JSON.stringify(fixture.findings, null, 2))}</pre></details>`
+    : '';
+}
+
+function liveOrGate(fixture: FixtureResult) {
+  if (isGated(fixture)) return gateBlock(fixture);
+  const sample = fixture.samples.find((item) => item.sample === fixture.scoredSample)!;
+  return narrativeBlock(sample) + findingsList(sample.report);
 }
 
 function page(title: string, body: string, downloadName: string) {
@@ -150,6 +191,7 @@ fieldset { border: 0; padding: 0; margin: .4rem 0; } legend { font-weight: 600; 
 .help, .meta { color: var(--muted); font-size: .85rem; margin: .1rem 0; } .fail { color: var(--fail); } .flag { color: var(--flag); } .ok { color: var(--ok); }
 .findings { font-size: .9rem; } .pair { display: grid; gap: 1rem; } @media (min-width: 760px) { .pair { grid-template-columns: 1fr 1fr; } }
 button { font: inherit; padding: .6rem 1rem; min-height: 44px; }
+pre { white-space: pre-wrap; font-size: .8rem; }
 </style></head><body>
 <h1>${escapeHtml(title)}</h1>
 <p class="meta">Synthetic fixtures only. Scores stay in this page until you download them.</p>
@@ -174,9 +216,10 @@ document.getElementById('download').addEventListener('click', function () {
 /** Initial review: one randomly chosen sample per fixture, scored on the rubric. */
 export function buildReviewHtml(run: RunRecord) {
   const sections = run.fixtures.map((fixture) => {
+    const head = `<section><h2>${escapeHtml(fixture.id)}</h2><p class="meta">${escapeHtml(fixture.purpose)}</p>${recordsTable(fixture.request)}`;
+    if (isGated(fixture)) return `${head}${gateBlock(fixture)}</section>`;
     const sample = fixture.samples.find((item) => item.sample === fixture.scoredSample)!;
-    return `<section><h2>${escapeHtml(fixture.id)}</h2><p class="meta">${escapeHtml(fixture.purpose)}</p>`
-      + recordsTable(fixture.request) + narrativeBlock(sample) + findingsList(sample.report)
+    return head + findingsSent(fixture) + narrativeBlock(sample) + findingsList(sample.report)
       + rubricInputs(fixture.id)
       + `<label>Notes <textarea name="${escapeHtml(fixture.id)}.notes" rows="2" cols="50"></textarea></label></section>`;
   });
@@ -186,28 +229,43 @@ export function buildReviewHtml(run: RunRecord) {
 export type BlindPair = { fixtureId: string; a: 'before' | 'after'; b: 'before' | 'after' };
 
 /**
- * Before/after review. Left/right order is random per fixture and the page
- * never names the configurations; the key goes in a separate file.
+ * Before/after review. Fixtures are paired by id. Where both runs have a
+ * narrative, left/right order is random and the page never names the
+ * configurations; the key goes in a separate file. Where either side was
+ * pre-gated, the pair can't be blind (a fixed message is recognizable), so
+ * it is shown labeled Before/After. Fixtures in only one run are listed.
  */
 export function buildCompareHtml(before: RunRecord, after: RunRecord, flip: (fixtureId: string) => boolean) {
   const key: BlindPair[] = [];
-  const sections = before.fixtures.map((beforeFixture) => {
-    const afterFixture = after.fixtures.find((fixture) => fixture.id === beforeFixture.id);
-    if (!afterFixture) throw new Error(`Fixture ${beforeFixture.id} is missing from the "after" run.`);
+  const afterById = new Map(after.fixtures.map((fixture) => [fixture.id, fixture]));
+  const unpaired = [
+    ...before.fixtures.filter((fixture) => !afterById.has(fixture.id)).map((fixture) => `${fixture.id} (before only)`),
+    ...after.fixtures.filter((fixture) => !before.fixtures.some((item) => item.id === fixture.id)).map((fixture) => `${fixture.id} (after only)`)
+  ];
+  const preference = (id: string, choices: string[]) => `<fieldset><legend>Which would you rather hand to a clinician?</legend>`
+    + choices.map((choice) => `<label><input type="radio" name="${id}.preference" value="${choice}">${choice}</label>`).join('')
+    + '</fieldset>';
+
+  const sections = before.fixtures.filter((fixture) => afterById.has(fixture.id)).map((beforeFixture) => {
+    const afterFixture = afterById.get(beforeFixture.id)!;
+    const id = escapeHtml(beforeFixture.id);
+    const head = `<section><h2>${id}</h2><p class="meta">${escapeHtml(afterFixture.purpose)}</p>${recordsTable(afterFixture.request)}`;
+    if (isGated(beforeFixture) || isGated(afterFixture) || beforeFixture.scoredSample === undefined || afterFixture.scoredSample === undefined) {
+      return head + '<p class="meta">Not blind: one side was pre-gated.</p><div class="pair">'
+        + `<div><h3>Before</h3>${liveOrGate(beforeFixture)}</div><div><h3>After</h3>${liveOrGate(afterFixture)}</div></div>`
+        + preference(id, ['Before', 'After', 'no preference']) + '</section>';
+    }
     const pick = (fixture: FixtureResult) => fixture.samples.find((sample) => sample.sample === fixture.scoredSample)!;
     const swap = flip(beforeFixture.id);
     const [a, b] = swap ? [pick(afterFixture), pick(beforeFixture)] : [pick(beforeFixture), pick(afterFixture)];
     key.push({ fixtureId: beforeFixture.id, a: swap ? 'after' : 'before', b: swap ? 'before' : 'after' });
-    const id = escapeHtml(beforeFixture.id);
-    return `<section><h2>${id}</h2><p class="meta">${escapeHtml(beforeFixture.purpose)}</p>`
-      + recordsTable(beforeFixture.request)
+    return head
       + '<div class="pair">'
       + `<div><h3>Narrative A</h3>${narrativeBlock(a)}${findingsList(a.report)}${rubricInputs(`${beforeFixture.id}.A`)}</div>`
       + `<div><h3>Narrative B</h3>${narrativeBlock(b)}${findingsList(b.report)}${rubricInputs(`${beforeFixture.id}.B`)}</div>`
       + '</div>'
-      + `<fieldset><legend>Which would you rather hand to a clinician?</legend>`
-      + ['A', 'B', 'no preference'].map((choice) => `<label><input type="radio" name="${id}.preference" value="${choice}">${choice}</label>`).join('')
-      + '</fieldset></section>';
+      + preference(id, ['A', 'B', 'no preference']) + '</section>';
   });
-  return { html: page('Before/after review (blinded)', sections.join(''), 'compare-scores.json'), key };
+  const note = unpaired.length ? `<section><h2>Not compared</h2><p class="meta">${escapeHtml(unpaired.join(', '))}</p></section>` : '';
+  return { html: page('Before/after review (blinded)', sections.join('') + note, 'compare-scores.json'), key };
 }
