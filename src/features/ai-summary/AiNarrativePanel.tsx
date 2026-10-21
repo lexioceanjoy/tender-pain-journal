@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { PainEntry } from '../../shared/data/painEntry';
 import { buildAiSummaryRequest, tenderSafetyId } from './aiSummary';
+import { AI_CONSENT_FIELDS_TEXT } from './consentFields';
 import { getDemoPassphrase, setDemoPassphrase } from './demoAccess';
 import { fetchProviderInfo, type ProviderInfo } from './providerInfo';
 import { SAMPLE_NARRATIVE, SAMPLE_NARRATIVE_LABEL } from './sampleNarrative';
@@ -63,7 +64,7 @@ export function AiNarrativePanel({ entries, from, to }: Props) {
       <h3 id="ai-title">Turn these records into an appointment story</h3>
       {!narrative && (
         <>
-          <p>Only labels for this date range&rsquo;s regions, precision areas, sensations, intensity, activities, sleep, and medications, plus your note text, are sent — never record IDs, timestamps, or other identifiers. Nothing leaves this device unless you check the box below and choose Generate, and only for this one request.</p>
+          <p>{AI_CONSENT_FIELDS_TEXT} Nothing leaves this device unless you check the box below and choose Generate, and only for this one request.</p>
           <p>
             <span>This request goes to {displayName}.</span>{' '}
             {providerInfo?.retentionSummary && <span>{providerInfo.retentionSummary}</span>}{' '}

@@ -72,7 +72,7 @@ describe('AI narrative consent', () => {
     render(<AiNarrativePanel entries={[entry]} from="2026-08-01" to="2026-08-07" />);
 
     await screen.findByRole('link', { name: /OpenAI/ });
-    expect(screen.getByText(/Only labels for this date range/)).toBeInTheDocument();
+    expect(screen.getByText(/Sent for each check-in in this date range/)).toBeInTheDocument();
     expect(screen.getByText('Insights and appointment export work without this.')).toBeInTheDocument();
     expect(screen.getByText(/This request goes to OpenAI\./)).toBeInTheDocument();
   });
