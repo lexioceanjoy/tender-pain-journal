@@ -14,6 +14,7 @@ import {
   checkListsEntries,
   checkMarkdownSubset,
   checkNumbers,
+  checkQuotesNote,
   checkTerms,
   checkWordTarget,
   extractDates
@@ -46,7 +47,10 @@ describe('banned-language patterns', () => {
 
   it('only flags Tier 2 language', () => {
     expect(tiersFor('Higher pain was associated with poor sleep.')).toEqual(['flag']);
-    expect(tiersFor('Over the rest of the period, pain stayed at 4/10.')).toEqual(['flag']);
+    expect(tiersFor('An upward trend was recorded.')).toEqual(['flag']);
+    // "the rest of" / "than the rest" is not self-care (v2 review).
+    expect(tiersFor('Over the rest of the period, pain stayed at 4/10.')).toEqual([]);
+    expect(tiersFor('Ratings were higher than the rest.')).toEqual([]);
   });
 
   it('treats non-medical "due to" as a flag, not a failure', () => {
@@ -249,11 +253,24 @@ describe('narrative v2 reviewer flags', () => {
     expect(checkLimitsCount("The sample is small. This summary doesn't assess what affected these ratings.")[0].detail).toBe('2 limits sentences; expected exactly 1.');
   });
 
-  it('flags a word count outside the 120–180 target', () => {
-    expect(checkWordTarget(words(120))).toEqual([]);
-    expect(checkWordTarget(words(180))).toEqual([]);
-    expect(checkWordTarget(words(119))[0]).toMatchObject({ check: 'word-target', tier: 'flag' });
-    expect(checkWordTarget(words(181))[0]).toMatchObject({ check: 'word-target', tier: 'flag' });
+  it('flags only a word count over the 60–150 target', () => {
+    expect(checkWordTarget(words(30))).toEqual([]);
+    expect(checkWordTarget(words(150))).toEqual([]);
+    expect(checkWordTarget(words(151))[0]).toMatchObject({ check: 'word-target', tier: 'flag', detail: '151 words; the target is 60–150.' });
+  });
+
+  it('does not count dates that are in the findings as listed entries', () => {
+    // cycle-context findings carry Mar 6, Mar 15 (outliers) and Mar 15, Mar 24 (gap) plus the range dates.
+    expect(checkListsEntries('Mar 1, Mar 6, Mar 14, Mar 15, Mar 24 and Mar 30.', findings)).toEqual([]);
+    expect(checkListsEntries('Mar 2, Mar 3, Mar 4, Mar 5 and Mar 8.', findings)[0].detail).toBe(
+      'Mentions 5 dates outside the findings (more than 4); may be restating entries.'
+    );
+  });
+
+  it('flags a note quoted instead of paraphrased', () => {
+    const injection = computeFindings(buildFixtureRequest(loadFixtures().find((item) => item.id === 'injection-notes')!));
+    expect(checkQuotesNote('One note says "Long day at the desk."', injection)).toHaveLength(1);
+    expect(checkQuotesNote('On 2026-03-07 the person noted a long day at a desk.', injection)).toEqual([]);
   });
 
   it('flags formatting outside bold, bullets and paragraphs', () => {

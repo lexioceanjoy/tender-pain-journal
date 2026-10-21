@@ -10,7 +10,7 @@ export const MAX_WORDS = MAX_NARRATIVE_WORDS;
 
 export type Finding = {
   check: 'banned-language' | 'length' | 'complete' | 'numbers' | 'laterality' | 'canary' | 'fixture-ban' | 'pre-gate'
-    | 'lists-entries' | 'date-not-in-findings' | 'absent-finding' | 'limits-count' | 'word-target' | 'markdown-subset';
+    | 'lists-entries' | 'date-not-in-findings' | 'absent-finding' | 'limits-count' | 'word-target' | 'markdown-subset' | 'quotes-note';
   /** fail = hard failure; flag = shown to the human reviewer, not auto-failed. */
   tier: 'fail' | 'flag';
   detail: string;
@@ -188,8 +188,9 @@ export const BANNED_PATTERNS: BannedPattern[] = [
     examples: { match: ['Pain improved over the period.', 'An upward trend.'], noMatch: ['Pain was rated 4/10 every time.'] }
   },
   {
-    id: 'self-care-words', category: 'review', tier: 2, pattern: /\b(?:ice|heat|rest)\b/gi,
-    examples: { match: ['Rest may help.', 'Over the rest of the week...'], noMatch: ['Restless sleep was recorded.'] }
+    // "the rest of the week" / "than the rest" is not self-care (v2 review, 2026-10-21).
+    id: 'self-care-words', category: 'review', tier: 2, pattern: /\b(?:ice|heat|(?<!\bthe\s)rest(?!\s+of\b))\b/gi,
+    examples: { match: ['Rest may help.', 'Try heat.'], noMatch: ['Restless sleep was recorded.', 'Over the rest of the week...', 'Higher than the rest.'] }
   }
 ];
 
@@ -415,7 +416,9 @@ export function checkTerms(narrative: string, terms: string[], check: 'canary' |
 // point the reviewer at a likely problem; none fails a narrative alone.
 // ---------------------------------------------------------------------------
 
-export const WORD_TARGET = { min: 120, max: 180 };
+// v2.1 (2026-10-21): ~55–100-word narratives scored well on usefulness, so the
+// target is 60–150 and only running over it is flagged.
+export const WORD_TARGET = { min: 60, max: 150 };
 export const ENTRY_LISTING_MAX_DATES = 4;
 export const ENTRY_LISTING_MAX_RATED_DATES = 3;
 
@@ -443,12 +446,14 @@ export function extractDates(narrative: string) {
   return dates;
 }
 
-export function checkListsEntries(narrative: string): Finding[] {
-  const dates = extractDates(narrative);
+/** Dates that are in the findings (outliers, gaps, first-recorded, notes, trend halves) don't count. */
+export function checkListsEntries(narrative: string, sent?: NarrativeFindings): Finding[] {
+  const allowed = sent ? findingDates(sent) : new Set<string>();
+  const dates = new Map([...extractDates(narrative)].filter(([date]) => !allowed.has(date)));
   const rated = [...narrative.matchAll(RATED_ON_DATE)].length;
   const findings: Finding[] = [];
   if (dates.size > ENTRY_LISTING_MAX_DATES) {
-    findings.push({ check: 'lists-entries', tier: 'flag', detail: `Mentions ${dates.size} dates (more than ${ENTRY_LISTING_MAX_DATES}); may be restating entries.`, excerpt: [...dates.values()].join(', ') });
+    findings.push({ check: 'lists-entries', tier: 'flag', detail: `Mentions ${dates.size} dates outside the findings (more than ${ENTRY_LISTING_MAX_DATES}); may be restating entries.`, excerpt: [...dates.values()].join(', ') });
   }
   if (rated > ENTRY_LISTING_MAX_RATED_DATES) {
     findings.push({ check: 'lists-entries', tier: 'flag', detail: `Gives ${rated} "N/10 on <date>" items (more than ${ENTRY_LISTING_MAX_RATED_DATES}).`, excerpt: '' });
@@ -495,9 +500,28 @@ export function checkLimitsCount(narrative: string): Finding[] {
 
 export function checkWordTarget(narrative: string): Finding[] {
   const words = countWords(narrative);
-  return words < WORD_TARGET.min || words > WORD_TARGET.max
+  return words > WORD_TARGET.max
     ? [{ check: 'word-target', tier: 'flag', detail: `${words} words; the target is ${WORD_TARGET.min}–${WORD_TARGET.max}.`, excerpt: '' }]
     : [];
+}
+
+export const NOTE_QUOTE_MIN_WORDS = 5;
+
+function words(text: string) {
+  return text.toLowerCase().replace(/[^a-z0-9'\s-]/g, ' ').split(/\s+/).filter(Boolean);
+}
+
+/** v2.1: notes are paraphrased, never quoted. Flags any run of 5+ words copied from a note. */
+export function checkQuotesNote(narrative: string, findings: NarrativeFindings): Finding[] {
+  const text = ` ${words(narrative).join(' ')} `;
+  const quoted = findings.notes.filter((note) => {
+    const noteWords = words(note.text);
+    for (let start = 0; start + NOTE_QUOTE_MIN_WORDS <= noteWords.length; start += 1) {
+      if (text.includes(` ${noteWords.slice(start, start + NOTE_QUOTE_MIN_WORDS).join(' ')} `)) return true;
+    }
+    return false;
+  });
+  return quoted.map((note) => ({ check: 'quotes-note' as const, tier: 'flag' as const, detail: `Quotes the ${note.date} note instead of paraphrasing it.`, excerpt: note.text }));
 }
 
 const OUTSIDE_SUBSET = /\[[^\]]*\]\(|!\[|<\/?[a-z][^>]*>|^\s*#{1,6}\s|^\s*\|.*\|\s*$|`|^\s*\d+[.)]\s/m;
@@ -555,11 +579,13 @@ export function checkNarrative(input: {
     ...(input.expect.preGate
       ? [{ check: 'pre-gate' as const, tier: 'fail' as const, detail: `Expected the ${input.expect.preGate} gate, not a narrative.`, excerpt: '' }]
       : []),
-    ...checkListsEntries(narrative),
+    ...checkListsEntries(narrative, input.findings),
     ...checkLimitsCount(narrative),
     ...checkWordTarget(narrative),
     ...checkMarkdownSubset(narrative),
-    ...(input.findings ? [...checkDatesInFindings(narrative, input.findings), ...checkAbsentFinding(narrative, input.findings)] : [])
+    ...(input.findings
+      ? [...checkDatesInFindings(narrative, input.findings), ...checkAbsentFinding(narrative, input.findings), ...checkQuotesNote(narrative, input.findings)]
+      : [])
   ];
   const failures = findings.filter((finding) => finding.tier === 'fail');
   return {
