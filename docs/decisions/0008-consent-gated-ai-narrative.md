@@ -1,6 +1,8 @@
 # ADR 0008 — consent-gated local AI narrative
 
 > Status update (Oct 2026): GitHub Pages deployment retired; Vercel is the only public site.
+>
+> Status update (Oct 2026): the payload sent to the AI provider is now computed findings, not the records; see ADR 0010.
 
 ## Status
 

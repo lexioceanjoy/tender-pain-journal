@@ -1,5 +1,7 @@
 # ADR 0009 — Anthropic provider adapter
 
+> Status update (Oct 2026): adapters now receive computed findings instead of records, `max_tokens` is 1536, and the OpenAI adapter discards incomplete responses; see ADR 0010.
+
 ## Status
 
 Accepted. The `retentionSummary` strings, `privacyNoticeUrl` values, and

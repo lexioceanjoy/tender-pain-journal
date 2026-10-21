@@ -230,10 +230,10 @@ an `omittedNotes` count. Notes stay data, never instructions.
 | --- | --- |
 | area-details | recurring only (3 locations, tight) |
 | co-occurrence-trap | association: poor sleep, 4 entries, mean 7.5 vs 3.5; recurring |
-| cycle-context | association: period, 3 entries, mean 7.7 vs 4.6; outliers: two 3/10 (Mar 6, Mar 15); gap Mar 15–24 (9 d); recurring |
+| cycle-context | association: period, 3 entries, mean 7.7 vs 4.6; outliers: two 3/10 (Mar 6, Mar 15); gap Mar 15–24 (8 days without a check-in); recurring |
 | dense-month | recurring left lower back (30 of 60); other labels with counts. No association reaches support 12 / diff 2.0 |
 | injection-notes | recurring; 4 notes |
-| long-gap | gap Mar 9–31 (22 d); "sharp" first recorded Apr 6; recurring |
+| long-gap | gap Mar 9–31 (21 days without a check-in); "sharp" first recorded Apr 6; recurring |
 | medications | treatments: ibuprofen ×3 (helped 2, not sure 1), naproxen ×2 (no change 2); recurring |
 | precision-areas | right lower back, tailbone area and "sharp" first recorded Mar 7; other labels incl. outer hip and middle glute |
 | rising | trend 3.0 → 6.3; association: sharp, 4 entries, 7.0 vs 3.5; "sharp" first recorded Mar 17 |
@@ -571,3 +571,32 @@ On a new branch from `main`, with separate commits for review:
   sending any of them.
 - Removing or loosening the demo passphrase.
 - An LLM grader.
+
+## Implementation notes (feat/narrative-v2)
+
+Built as planned. Where the code settles something the plan left open:
+
+- **Dates are the person's calendar dates.** The browser sends each
+  check-in's time in the device's local UTC offset (same instant), and
+  findings use the date as written. Fixtures build with offset 0, so eval
+  dates don't depend on the machine's time zone. The offset reaches
+  Tender's server only; the provider gets dates.
+- **Gap length** counts the days with no check-in between two check-ins,
+  or from a range edge, so Mar 15 → Mar 24 is 8 days (the prototype's
+  table said 9).
+- **Each location or sensation is classified once:** first recorded in
+  range, else recurring, else other.
+- **Limits sentence:** a location or sensation association doesn't name a
+  factor that could "affect" pain, so the sentence names the strongest
+  activity, sleep, stress, mood or cycle association, then falls back to
+  the trend, then to "what affected these ratings".
+- **Dose** is dropped by the browser and stripped by the server schema, so
+  it never leaves the device.
+- **The eval harness calls `createAiNarrative`**, the same function the
+  server uses, so pre-gates, findings, the limits sentence and the
+  250-word discard are all exercised. A discarded narrative is kept in
+  `run.json` as `discarded`, for the reviewer only.
+- **Re-checking the 2026-10-20 baseline** with `--recheck` now refuses,
+  because the medications fixture's request no longer carries a dose. Its
+  saved results and scores are unchanged, and `--compare` still reads it.
+

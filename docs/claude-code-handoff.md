@@ -67,6 +67,8 @@ The provider-adapter migration described in the previous version of this doc is 
 
 **What's still outstanding — the next planned task:** the narrative quality review. Until it's done, `CLAUDE.md` rule 5 keeps live AI generation behind the demo passphrase (`TENDER_DEMO_PASSPHRASE`); an anonymous visitor only ever sees the labeled sample narrative, never a real model call. Do not remove or loosen the passphrase gate before that review.
 
+**Narrative v2 (ADR 0010, `docs/plans/narrative-v2.md`):** the baseline was scored on 2026-10-20 and v2 is implemented on `feat/narrative-v2`: pre-gates, server-computed findings as the provider payload, a server-added limits sentence, a 250-word discard, and safe Markdown rendering. The live before/after eval run against the baseline needs product-owner approval (billed API calls).
+
 When that review happens: use the fixture-based before/after evaluation on synthetic or non-emergency entries, inspect the output as a clinician-facing factual summary, and obtain product-owner approval before loosening the demo gate.
 
 ## Constraints and non-goals
@@ -93,7 +95,7 @@ When that review happens: use the fixture-based before/after evaluation on synth
 | Body-map source and attribution | `src/features/body-map/`, `vendor/choir-body-map/`, `THIRD_PARTY_NOTICES.md` |
 | Local data model | `src/shared/data/painEntry.ts`, `docs/data-model.md` |
 | Insights and reports | `src/features/insights/` |
-| Optional AI narrative, provider adapters | `src/features/ai-summary/`, `server/`, `.env.example`, `docs/decisions/0008-consent-gated-ai-narrative.md`, `docs/decisions/0009-anthropic-provider-adapter.md` |
+| Optional AI narrative, provider adapters | `src/features/ai-summary/`, `server/`, `.env.example`, `docs/decisions/0008-consent-gated-ai-narrative.md`, `docs/decisions/0009-anthropic-provider-adapter.md`, `docs/decisions/0010-narrative-findings-payload.md` |
 | Vercel demo deploy, passphrase gate | `api/`, `vercel.json`, `src/features/ai-summary/demoAccess.ts`, `src/features/ai-summary/sampleNarrative.ts` |
 | Demo seed data | `src/shared/data/demoData.ts`, `src/features/today/TodayScreen.tsx` |
 | Automated tests | `src/**/*.test.ts*`, `tests/e2e/` |

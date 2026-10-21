@@ -414,6 +414,13 @@ test in `npm run check`.
 
 ## Implementation
 
+> Narrative v2 (`docs/plans/narrative-v2.md`, ADR 0010) adds 3 fixtures (16 in
+> total, 3 of them pre-gated with no API call), runs the harness through
+> the server's `createAiNarrative`, and adds Tier 2 flags for listed
+> entries, dates outside the findings, absent-finding comments, the
+> limits-sentence count, the 120–180 word target, and formatting outside
+> the safe subset.
+
 | Piece | Location | Runs in `npm run check`? |
 | --- | --- | --- |
 | Fixtures + `expect` blocks | `eval/narrative/fixtures/*.json` | Validated (schema, entries pass `painEntrySchema`, request passes `aiSummaryRequestSchema`) |
