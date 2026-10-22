@@ -72,4 +72,24 @@ describe('appointment report', () => {
     expect(appointmentReportFilename('2026-07-20', '2026-07-21'))
       .toBe('tender-appointment-summary-2026-07-20-to-2026-07-21.txt');
   });
+
+  describe('new in this period', () => {
+    const area = (id: string, day: string) => ({ id, label: `Area ${id}`, firstRecorded: day });
+
+    it('is left out when every area is new, or none is', () => {
+      const allNew = buildAppointmentReport({ ...summary, newAreas: [area('a', '2026-07-20')], allAreasNew: true }, '2026-07-20', '2026-07-21');
+      expect(allNew).not.toContain('NEW IN THIS PERIOD');
+      const none = buildAppointmentReport({ ...summary, newAreas: [], allAreasNew: false }, '2026-07-20', '2026-07-21');
+      expect(none).not.toContain('NEW IN THIS PERIOD');
+    });
+
+    it('lists 3 new areas plus "and N more"', () => {
+      const newAreas = ['a', 'b', 'c', 'd', 'e'].map((id) => area(id, '2026-07-20'));
+      const report = buildAppointmentReport({ ...summary, newAreas, allAreasNew: false }, '2026-07-20', '2026-07-21');
+      expect(report).toContain('NEW IN THIS PERIOD');
+      expect(report).toContain('- Area c: first recorded');
+      expect(report).not.toContain('Area d');
+      expect(report).toContain('- and 2 more');
+    });
+  });
 });

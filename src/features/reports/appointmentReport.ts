@@ -1,6 +1,6 @@
 import { findBodyRegion } from '../body-map/bodyRegions';
 import { findPrecisionArea } from '../body-map/precisionAreas';
-import { activityMarkers, formatShortDate, regionTiming, type InsightSummary } from '../insights/insights';
+import { activityMarkers, formatShortDate, newAreasForDisplay, regionTiming, type InsightSummary } from '../insights/insights';
 import { activityEffectLabels, getAreaDetails, interferenceLabels, interferenceOptions, patternLabels } from '../../shared/data/painEntry';
 
 export function buildAppointmentReport(summary: InsightSummary, from: string, to: string) {
@@ -21,9 +21,8 @@ export function buildAppointmentReport(summary: InsightSummary, from: string, to
     ...listOrFallback(summary.commonRegions.map((region) => `${region.label}: ${region.count} check-in${region.count === 1 ? '' : 's'}, average ${region.averageIntensity}/10${regionTiming(region) ? ` (${regionTiming(region)})` : ''}`)),
     'Check-ins are samples: "since" is when recording started, not how long pain has lasted.',
     '',
-    'NEW IN THIS PERIOD (not recorded in the 30 days before)',
-    ...listOrFallback((summary.newAreas ?? []).map((area) => `${area.label}: first recorded ${formatShortDate(area.firstRecorded)}`)),
-    '',
+    // Same rule as Insights: nothing when every area is new, else 3 plus "and N more".
+    ...newAreaLines(summary),
     'MOST RECORDED REFINED LOCATIONS',
     ...listOrFallback((summary.commonPrecisionAreas ?? []).map((area) => `${area.label}: ${area.count} check-in${area.count === 1 ? '' : 's'}`)),
     'Refined locations are approximate Tender detail areas within broader CHOIR regions and have not been clinically validated.',
@@ -103,6 +102,17 @@ function formatMedication(medication: {
     medication.perceivedEffect ? `effect: ${medication.perceivedEffect.replaceAll('-', ' ')}` : undefined
   ].filter(Boolean);
   return details.length ? `${medication.name} (${details.join(', ')})` : medication.name;
+}
+
+function newAreaLines(summary: InsightSummary) {
+  const newAreas = newAreasForDisplay({ newAreas: summary.newAreas ?? [], allAreasNew: summary.allAreasNew ?? false });
+  if (!newAreas) return [];
+  return [
+    'NEW IN THIS PERIOD (not recorded in the 30 days before)',
+    ...newAreas.shown.map((area) => `- ${area.label}: first recorded ${formatShortDate(area.firstRecorded)}`),
+    ...(newAreas.more > 0 ? [`- and ${newAreas.more} more`] : []),
+    ''
+  ];
 }
 
 function listOrFallback(items: string[]) {
