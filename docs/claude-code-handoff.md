@@ -19,7 +19,7 @@ This repository is the full source of truth for Tender, a personal, phone-first 
 | Published/default branch | `main` at `75e8bb4` or later (`Merge pull request #1 from lexioceanjoy/feat/iteration-b`) |
 | AI prototype branch | `feat/iteration-b`, merged into `main` via PR #1 on 2026-10-15 |
 | Narrative v2 | `feat/narrative-v2`, merged into `main` via PR #8 on 2026-10-22 |
-| Iteration C | `feat/iteration-c` (check-in gaps, narrative v3, README), not yet merged or pushed |
+| Iteration C | `feat/iteration-c` (check-in gaps, narrative v3, README), merged into `main` via PR #9 on 2026-10-22 |
 | Public site | https://tender-pain-journal.vercel.app (Vercel production tracks `main`), passphrase-gated AI narrative — see `CLAUDE.md` rule 5. GitHub Pages is retired. |
 
 `main` is stable, published, and should not be overwritten. Iteration B was merged into `main` via PR #1 on 2026-10-15, and Vercel production deploys from `main`. It has a provider-adapter (OpenAI + Anthropic) and a Vercel demo deployment path. The AI path has been tested with a real Anthropic key, locally and on Vercel, and the narrative quality review was done on 2026-10-22 — see "AI state and next decision" below.
