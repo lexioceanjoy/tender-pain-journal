@@ -38,7 +38,7 @@ const yields: Record<string, string[] | string> = {
   'long-gap': ['recurring locations Left buttock 7', 'recurring sensations aching 5', 'first recorded sharp 2026-04-06', 'gap 2026-03-09 to 2026-03-31 (21 days)'],
   medications: [
     'recurring locations Left buttock 6', 'recurring sensations aching 4',
-    'treatment Ibuprofen 3 {"helped":2,"not sure yet":1} with aching 3', 'treatment Naproxen 2 {"no change":2} with sharp 2'
+    'treatment Ibuprofen 3 {"helped":2,"not sure yet":1} with aching 3', 'treatment Naproxen 2 {"no change":2} with none'
   ],
   'precision-areas': [
     'recurring locations Left SI-joint area 3', 'first recorded Right lower back 2026-03-07', 'first recorded Tailbone area 2026-03-07',
@@ -52,7 +52,7 @@ const yields: Record<string, string[] | string> = {
   'two-entries': 'too-few-entries',
   'typical-two-weeks': [
     'association location:Left back hip 4 at 6.5 vs 4.3', 'recurring locations Left lower back 7, Left back hip 4', 'recurring sensations aching 6',
-    'treatment Ibuprofen 1 {"helped":1} with tight 1'
+    'treatment Ibuprofen 1 {"helped":1} with none'
   ],
   'worrying-notes': ['recurring locations Left lower back 4', 'recurring sensations aching 3', 'first recorded tingling 2026-03-12', 'notes 2']
 };

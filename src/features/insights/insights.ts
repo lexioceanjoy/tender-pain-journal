@@ -12,6 +12,8 @@ export const NEW_AREA_LOOKBACK_DAYS = 30;
 /** A run of recordings ends after a gap of more than this many days. */
 export const RUN_GAP_DAYS = 14;
 const DAY_MS = 86_400_000;
+/** Insights lists this many new areas, then "and N more". */
+export const NEW_AREAS_SHOWN = 3;
 
 export type InsightSummary = {
   entries: PainEntry[];
@@ -22,6 +24,8 @@ export type InsightSummary = {
   commonActivities: Array<{ label: string; count: number; worse: number; helped: number }>;
   /** Areas first recorded in this range after at least NEW_AREA_LOOKBACK_DAYS without them. */
   newAreas: Array<{ id: string; label: string; firstRecorded: string }>;
+  /** Every area recorded in the range is new (e.g. the first period of data), so "new" says nothing. */
+  allAreasNew: boolean;
   /** Days with an answer; each day takes its highest recorded level. */
   interference?: { days: number; levels: Record<Interference, number>; areas: Array<{ area: InterferenceArea; days: number }> };
   /** Nights count once per day. "Of" is days with a sleep answer or "Pain woke me". */
@@ -72,6 +76,7 @@ export function buildInsights(entries: PainEntry[], from: string, to: string): I
         helped: value === NO_MARKER_ACTIVITY ? 0 : selected.filter((entry) => entry.context?.activityEffects?.[value] === 'helped').length
       })),
     newAreas: newAreas(entries, selected),
+    allAreasNew: selected.length > 0 && newAreas(entries, selected).length === new Set(selected.flatMap(areaIds)).size,
     interference: interferenceDays(selected),
     painWoke: painWokeNights(selected)
   };
@@ -216,4 +221,10 @@ export function activityMarkers(activity: { worse: number; helped: number }) {
     activity.helped ? `helped: ${activity.helped}×` : undefined
   ].filter(Boolean);
   return parts.join(', ');
+}
+
+/** What Insights shows under "New in this period": nothing when every area is new, else up to NEW_AREAS_SHOWN. */
+export function newAreasForDisplay(summary: Pick<InsightSummary, 'newAreas' | 'allAreasNew'>) {
+  if (summary.allAreasNew || summary.newAreas.length === 0) return null;
+  return { shown: summary.newAreas.slice(0, NEW_AREAS_SHOWN), more: Math.max(0, summary.newAreas.length - NEW_AREAS_SHOWN) };
 }

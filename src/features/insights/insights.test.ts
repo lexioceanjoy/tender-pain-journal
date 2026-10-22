@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PainEntry } from '../../shared/data/painEntry';
-import { NEW_AREA_LOOKBACK_DAYS, RUN_GAP_DAYS, buildInsights, regionTiming } from './insights';
+import { NEW_AREA_LOOKBACK_DAYS, NEW_AREAS_SHOWN, RUN_GAP_DAYS, buildInsights, newAreasForDisplay, regionTiming } from './insights';
 
 const base: PainEntry = {
   id: 'one',
@@ -68,6 +68,22 @@ describe('private insights', () => {
       const older = at('2026-06-19', 'older'); // 31 days before
       expect(buildInsights([older, at('2026-07-20', 'now')], '2026-07-20', '2026-07-21').newAreas)
         .toEqual([{ id: 'back-low-left', label: 'Left low back', firstRecorded: '2026-07-20' }]);
+    });
+
+    it('hides "New in this period" when every area is new, otherwise caps it', () => {
+      const firstPeriod = buildInsights([at('2026-07-20', 'a'), at('2026-07-21', 'b', { regions: ['foot-left'] })], '2026-07-20', '2026-07-21');
+      expect(firstPeriod.allAreasNew).toBe(true);
+      expect(newAreasForDisplay(firstPeriod)).toBeNull();
+
+      const fresh = ['foot-left', 'foot-right', 'knee-left', 'knee-right', 'hand-left'];
+      const later = buildInsights([
+        at('2026-07-01', 'old'),
+        at('2026-07-20', 'again'),
+        ...fresh.map((region, index) => at('2026-07-21', `new-${index}`, { regions: [region] }))
+      ], '2026-07-20', '2026-07-21');
+      expect(later.allAreasNew).toBe(false);
+      expect(newAreasForDisplay(later)).toMatchObject({ more: fresh.length - NEW_AREAS_SHOWN });
+      expect(newAreasForDisplay(later)!.shown).toHaveLength(NEW_AREAS_SHOWN);
     });
 
     it('starts "recorded since" after a gap longer than the run gap', () => {

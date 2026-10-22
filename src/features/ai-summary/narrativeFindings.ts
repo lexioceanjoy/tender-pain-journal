@@ -31,6 +31,8 @@ export const DATA_GAP_MIN_DAYS = 7;
 export const MAX_NOTES = 20;
 /** Sensations listed per treatment: those logged on the same check-ins (descriptive, not a comparison). */
 export const MAX_TREATMENT_SENSATIONS = 3;
+/** A treatment needs this many check-ins before its sensations are listed (the association support minimum). */
+export const TREATMENT_SENSATIONS_MIN_ENTRIES = ASSOCIATION_MIN_SUPPORT;
 /** Each side needs this many check-ins recording it (the association support minimum). */
 export const SIDE_MIN_ENTRIES = ASSOCIATION_MIN_SUPPORT;
 /** A side's top sensation must be on at least this share of that side's check-ins. */
@@ -71,7 +73,7 @@ export type NarrativeFindings = {
     name: string;
     entries: number;
     perceivedEffects: Record<string, number>;
-    /** Sensations recorded on the check-ins where this treatment was logged. */
+    /** Sensations recorded on the check-ins where this treatment was logged; empty below TREATMENT_SENSATIONS_MIN_ENTRIES. */
     sensationsOnSameCheckIns: Array<{ label: string; entries: number }>;
   }>;
   notes: Array<{ date: string; text: string }>;
@@ -313,7 +315,7 @@ function findTreatments(entries: AiEntry[]): NarrativeFindings['treatments'] {
   return [...byName.values()]
     .map((treatment) => ({
       ...treatment,
-      sensationsOnSameCheckIns: treatment.sensationsOnSameCheckIns
+      sensationsOnSameCheckIns: treatment.entries < TREATMENT_SENSATIONS_MIN_ENTRIES ? [] : treatment.sensationsOnSameCheckIns
         .sort((a, b) => b.entries - a.entries || a.label.localeCompare(b.label))
         .slice(0, MAX_TREATMENT_SENSATIONS)
     }))

@@ -2,13 +2,14 @@ import { useMemo, useState } from 'react';
 import type { PainEntry } from '../../shared/data/painEntry';
 import { appointmentReportFilename, buildAppointmentReport } from '../reports/appointmentReport';
 import { interferenceLabels, interferenceOptions } from '../../shared/data/painEntry';
-import { activityMarkers, buildInsights, formatShortDate, regionTiming } from './insights';
+import { activityMarkers, buildInsights, formatShortDate, newAreasForDisplay, regionTiming } from './insights';
 import { AiNarrativePanel } from '../ai-summary/AiNarrativePanel';
 
 export function InsightsPanel({ entries }: { entries: PainEntry[] }) {
   const [from, setFrom] = useState(() => dateDaysAgo(29));
   const [to, setTo] = useState(() => dateDaysAgo(0));
   const summary = useMemo(() => buildInsights(entries, from, to), [entries, from, to]);
+  const newAreas = newAreasForDisplay(summary);
 
   function downloadAppointmentSummary() {
     const report = buildAppointmentReport(summary, from, to);
@@ -49,11 +50,11 @@ export function InsightsPanel({ entries }: { entries: PainEntry[] }) {
               <p>Check-ins are samples, so “since” is when recording started, not how long pain has lasted.</p>
             </div>
           )}
-          {summary.newAreas.length > 0 && (
+          {newAreas && (
             <div className="observation-block">
               <h3>New in this period</h3>
-              <ul>{summary.newAreas.map((area) => <li key={area.id}><span>{area.label}</span><strong>first recorded {formatShortDate(area.firstRecorded)}</strong></li>)}</ul>
-              <p>Not recorded in the 30 days before.</p>
+              <ul>{newAreas.shown.map((area) => <li key={area.id}><span>{area.label}</span><strong>first recorded {formatShortDate(area.firstRecorded)}</strong></li>)}</ul>
+              <p>{newAreas.more > 0 && `And ${newAreas.more} more. `}Not recorded in the 30 days before.</p>
             </div>
           )}
           {summary.commonPrecisionAreas.length > 0 && (

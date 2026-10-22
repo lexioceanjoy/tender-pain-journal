@@ -760,10 +760,13 @@ minimum and the no-restating rule are unchanged.
 - **`treatments[].sensationsOnSameCheckIns`**: the sensations recorded on
   the check-ins where each medication was logged, with counts (top 3).
   Descriptive only: it compares no ratings, so it is not an association
-  and medications are still never association factors. It is listed for
-  every logged treatment, as treatments already are (naproxen is on 2
-  check-ins in the medications fixture). The prompt forbids saying a
-  treatment was taken for, or worked on, a sensation.
+  and medications are still never association factors. Listed only for a
+  treatment logged on at least 3 check-ins
+  (`TREATMENT_SENSATIONS_MIN_ENTRIES`, the association support minimum;
+  product-owner decision, 2026-10-22, after the v3 run). In the
+  medications fixture that keeps ibuprofen with aching (3 of 3) and drops
+  naproxen (2 check-ins). The prompt forbids saying a treatment was taken
+  for, or worked on, a sensation.
 - **`firstRecordedTogether`**: locations and sensations first recorded
   in range on the same date, when there are 2 or more, so the narrative
   reports them in one sentence (precision-areas: Right lower back,
@@ -826,7 +829,8 @@ rescored (product-owner decision); the automatic checks decide.
   since sensations are recorded per check-in. Some use "- " bullets for
   2 questions, against the 3-item bullet rule; not flagged.
 - **Coverage findings in use:** medications names ibuprofen with aching
-  (3 of 3) and naproxen with sharp (2 of 2); precision-areas reports the
+  (3 of 3) and naproxen with sharp (2 of 2; naproxen's pairing was later
+  dropped by the 3-check-in minimum, not re-run); precision-areas reports the
   2026-03-07 firsts in one sentence and contrasts left aching (3 of 4)
   with right tight (2 of 3).
 

@@ -473,7 +473,11 @@ the check-in and Insights flows.
   entries and for backups; version 1 entries and backups still load.
 - **"New in this period"** uses the new-area rule (no recording of that
   area in the previous 30 days), for CHOIR regions and precision areas.
-  On a fresh journal every area is "new", which is accurate.
+  Insights hides the block when every area in the range is new (for
+  example the first period of data, or the seeded demo), and otherwise
+  shows 3 areas plus "And N more" (`NEW_AREAS_SHOWN`; product-owner
+  decision, 2026-10-22). The appointment summary still lists every new
+  area.
 - **"Recorded since"** shows "since Oct 3 · recorded on 9 of 15 days",
   where the span runs from the start of the current run to the latest
   recording on or before the range end. A caption says check-ins are

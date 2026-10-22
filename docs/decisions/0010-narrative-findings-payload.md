@@ -26,7 +26,8 @@ output ceiling. See `docs/plans/narrative-v2.md`.
   perceived-effect labels, and notes with their date. Thresholds are named
   constants, tested at their boundaries.
 - **v3 (2026-10-22): three more derived findings**, from fields already
-  sent: the sensations on the check-ins where each medication was logged,
+  sent: the sensations on the check-ins where each medication was logged
+  (only for a medication on 3+ check-ins),
   locations and sensations first recorded on the same day, and the most
   frequent sensation per body side when the sides differ (each side needs
   3+ check-ins). No new raw data reaches the provider; the consent copy

@@ -18,7 +18,7 @@ The demo seeds seven sample check-ins on first visit (two weeks of lower-back an
 1. **Today (10 s).** The sample banner, your most recent check-in, and **Repeat last**.
 2. **Check in (20 s).** Tap **New check-in**, tap the lower back on the body map, drag the intensity slider, then **Save check-in**. That's the whole basic path. Open **Add context** to see the optional fields: sensations, activities with your own made-worse / helped marker, "Did pain get in the way today?", steady or comes-and-goes, "Pain woke me", and medication.
 3. **History (10 s).** Open a check-in to see everything it recorded, with edit and confirmed delete.
-4. **Insights (30 s).** Most recorded locations with when recording started ("since … · recorded on 4 of 13 days"), areas new in the period, activity markers, days pain got in the way, and nights pain woke you. Tap **Download appointment summary** for the plain-text report.
+4. **Insights (30 s).** Most recorded locations with when recording started ("since … · recorded on 4 of 13 days"), activity markers, days pain got in the way, and nights pain woke you. Tap **Download appointment summary** for the plain-text report.
 5. **AI narrative (20 s).** At the bottom of Insights, open **What exactly is sent**, tick the consent box, and choose **Generate narrative**. Without a demo access code you get a clearly labeled, pre-written sample; **live AI is available on request**.
 
 **Clear sample data** on Today removes the samples for good.
@@ -52,7 +52,7 @@ The narrative had to earn its place, so before any change shipped it was measure
 Scores compare matched fixtures only: 11 for usefulness and coverage, 10 for the rest.
 
 - **The coverage exception.** The rule allowed coverage to fall by at most 0.3. It fell by 0.36, mostly because the model now points out what stands out instead of restating every check-in, and because associations need at least 3 supporting check-ins. The product owner shipped anyway, with a dated, recorded exception: usefulness and readability rose, faithfulness held, and every hard check passed. Live AI also stays behind a demo access code.
-- **v3 (this iteration)** adds findings aimed at what the coverage review found missing: which sensations were recorded with each medication, labels first recorded on the same day, and sensations that differ by body side. It also adds an optional "Questions this record raises" section (at most 2 questions, only about gaps in the data). v3 passed 39 of 39 hard checks. Its first run flagged one failure, which turned out to be a checker bug (a date read as a rating); the checker was fixed and the run repeated. v3 has not been rescored by hand.
+- **v3 (this iteration)** adds findings aimed at what the coverage review found missing: which sensations were recorded with each medication (once it is logged on 3 or more check-ins), labels first recorded on the same day, and sensations that differ by body side. It also adds an optional "Questions this record raises" section (at most 2 questions, only about gaps in the data). v3 passed 39 of 39 hard checks. Its first run flagged one failure, which turned out to be a checker bug (a date read as a rating); the checker was fixed and the run repeated. v3 has not been rescored by hand.
 
 The full method, results, and decisions are in [`docs/plans/narrative-eval.md`](docs/plans/narrative-eval.md) and [`docs/plans/narrative-v2.md`](docs/plans/narrative-v2.md). The harness is `npm run eval:narrative`.
 
