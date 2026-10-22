@@ -192,6 +192,18 @@ describe('App', () => {
     expect(recordDemoSeeded).toHaveBeenCalledWith([demoEntry.id]);
   });
 
+  it('shows the newest seeded sample as the most recent check-in', async () => {
+    const older = createPainEntry({ regions: ['choir-b23'], intensity: 3, occurredAt: '2026-10-01T09:00:00.000Z' });
+    const newer = createPainEntry({ regions: ['choir-b23'], intensity: 8, occurredAt: '2026-10-05T09:00:00.000Z' });
+    vi.mocked(hasDemoDataDecisionBeenMade).mockReturnValue(false);
+    vi.mocked(buildDemoEntries).mockReturnValue([older, newer]);
+
+    await renderApp();
+
+    expect(await screen.findByText('8/10')).toBeInTheDocument();
+    expect(screen.queryByText('3/10')).not.toBeInTheDocument();
+  });
+
   it('does not seed demo entries when a decision has already been recorded, even if storage is empty', async () => {
     vi.mocked(hasDemoDataDecisionBeenMade).mockReturnValue(true);
 

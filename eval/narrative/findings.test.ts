@@ -17,8 +17,10 @@ function summarize(findings: NarrativeFindings) {
     if (findings[kind].recurring.length) lines.push(`recurring ${kind} ${findings[kind].recurring.map((label) => `${label.label} ${label.entries}`).join(', ')}`);
     for (const label of findings[kind].firstRecordedInRange) lines.push(`first recorded ${label.label} ${label.date}`);
   }
+  for (const group of findings.firstRecordedTogether) lines.push(`first recorded together ${group.date}: ${[...group.locations, ...group.sensations].join(', ')}`);
+  for (const side of findings.sensationsBySide) lines.push(`side ${side.side} ${side.sensation} ${side.sensationEntries} of ${side.entries}`);
   for (const gap of findings.gaps) lines.push(`gap ${gap.lastCheckInBefore} to ${gap.nextCheckInAfter} (${gap.daysWithoutCheckIns} days)`);
-  for (const treatment of findings.treatments) lines.push(`treatment ${treatment.name} ${treatment.entries} ${JSON.stringify(treatment.perceivedEffects)}`);
+  for (const treatment of findings.treatments) lines.push(`treatment ${treatment.name} ${treatment.entries} ${JSON.stringify(treatment.perceivedEffects)} with ${treatment.sensationsOnSameCheckIns.map((item) => `${item.label} ${item.entries}`).join(', ') || 'none'}`);
   if (findings.notes.length) lines.push(`notes ${findings.notes.length}`);
   return lines;
 }
@@ -36,11 +38,12 @@ const yields: Record<string, string[] | string> = {
   'long-gap': ['recurring locations Left buttock 7', 'recurring sensations aching 5', 'first recorded sharp 2026-04-06', 'gap 2026-03-09 to 2026-03-31 (21 days)'],
   medications: [
     'recurring locations Left buttock 6', 'recurring sensations aching 4',
-    'treatment Ibuprofen 3 {"helped":2,"not sure yet":1}', 'treatment Naproxen 2 {"no change":2}'
+    'treatment Ibuprofen 3 {"helped":2,"not sure yet":1} with aching 3', 'treatment Naproxen 2 {"no change":2} with none'
   ],
   'precision-areas': [
     'recurring locations Left SI-joint area 3', 'first recorded Right lower back 2026-03-07', 'first recorded Tailbone area 2026-03-07',
-    'recurring sensations aching 3, tight 3', 'first recorded sharp 2026-03-07'
+    'recurring sensations aching 3, tight 3', 'first recorded sharp 2026-03-07',
+    'first recorded together 2026-03-07: Right lower back, Tailbone area, sharp', 'side left aching 3 of 4', 'side right tight 2 of 3'
   ],
   rising: ['trend up 3 -> 6.3', 'association sensation:sharp 4 at 7 vs 3.5', 'recurring locations Left back hip 12', 'recurring sensations aching 12', 'first recorded sharp 2026-03-17'],
   'single-entry': 'too-few-entries',
@@ -49,7 +52,7 @@ const yields: Record<string, string[] | string> = {
   'two-entries': 'too-few-entries',
   'typical-two-weeks': [
     'association location:Left back hip 4 at 6.5 vs 4.3', 'recurring locations Left lower back 7, Left back hip 4', 'recurring sensations aching 6',
-    'treatment Ibuprofen 1 {"helped":1}'
+    'treatment Ibuprofen 1 {"helped":1} with none'
   ],
   'worrying-notes': ['recurring locations Left lower back 4', 'recurring sensations aching 3', 'first recorded tingling 2026-03-12', 'notes 2']
 };

@@ -1,10 +1,21 @@
 import type { Dispatch, SetStateAction } from 'react';
+import { findBodyRegion } from '../body-map/bodyRegions';
 import {
+  NO_MARKER_ACTIVITY,
   cycleOptions,
+  interferenceAreaOptions,
+  interferenceLabels,
+  interferenceOptions,
   moodOptions,
+  patternLabels,
+  patternOptions,
   sensationOptions,
   sleepOptions,
   stressOptions,
+  type ActivityEffect,
+  type AreaPattern,
+  type Interference,
+  type InterferenceArea,
   type Sensation
 } from '../../shared/data/painEntry';
 
@@ -18,6 +29,12 @@ export type ContextState = {
   medicationName: string;
   medicationDose: string;
   medicationEffect?: 'helped' | 'no-change' | 'not-sure';
+  interference?: Interference;
+  interferenceAreas: InterferenceArea[];
+  activityEffects: Partial<Record<string, ActivityEffect>>;
+  painWokeMe: boolean;
+  /** Choices the person made (or that edit/repeat loaded). null = cleared, so no pre-fill comes back. */
+  areaPatterns: Record<string, AreaPattern | null>;
   note: string;
 };
 
@@ -26,8 +43,17 @@ export const emptyContext: ContextState = {
   activities: [],
   medicationName: '',
   medicationDose: '',
+  interferenceAreas: [],
+  activityEffects: {},
+  painWokeMe: false,
+  areaPatterns: {},
   note: ''
 };
+
+
+function showsInterferenceAreas(level?: Interference) {
+  return level === 'a-lot' || level === 'unable';
+}
 
 const activityOptions = ['Long sitting', 'Walking', 'Workout', 'Lifting', 'Travel', 'Poor sleep'];
 
@@ -35,9 +61,51 @@ type Props = {
   value: ContextState;
   onChange: Dispatch<SetStateAction<ContextState>>;
   onOpenChange?: (open: boolean) => void;
+  /** Selected CHOIR regions, for the steady / comes-and-goes rows. */
+  regions?: string[];
+  /** Per region, the most recent earlier pattern, shown as "from last time". */
+  patternPrefill?: Record<string, AreaPattern>;
+  /** datetime-local value; a backdated check-in asks about "that day". */
+  occurredAt?: string;
 };
 
-export function OptionalContext({ value, onChange, onOpenChange }: Props) {
+export function OptionalContext({ value, onChange, onOpenChange, regions = [], patternPrefill = {}, occurredAt }: Props) {
+  const isToday = !occurredAt || occurredAt.slice(0, 10) === todayLocal();
+
+  function setInterference(level: Interference) {
+    onChange((current) => {
+      const next = current.interference === level ? undefined : level;
+      return { ...current, interference: next, interferenceAreas: showsInterferenceAreas(next) ? current.interferenceAreas : [] };
+    });
+  }
+
+  function toggleInterferenceArea(area: InterferenceArea) {
+    onChange((current) => ({
+      ...current,
+      interferenceAreas: current.interferenceAreas.includes(area)
+        ? current.interferenceAreas.filter((item) => item !== area)
+        : [...current.interferenceAreas, area]
+    }));
+  }
+
+  function setActivityEffect(activity: string, effect: ActivityEffect) {
+    onChange((current) => {
+      const activityEffects = { ...current.activityEffects };
+      if (activityEffects[activity] === effect) delete activityEffects[activity];
+      else activityEffects[activity] = effect;
+      return { ...current, activityEffects };
+    });
+  }
+
+  // Tapping either chip on a pre-filled row makes it the person's choice;
+  // tapping their own pressed chip clears it.
+  function setPattern(regionId: string, pattern: AreaPattern) {
+    onChange((current) => {
+      const chosen = current.areaPatterns[regionId];
+      return { ...current, areaPatterns: { ...current.areaPatterns, [regionId]: chosen === pattern ? null : pattern } };
+    });
+  }
+
   function toggleSensation(option: Sensation) {
     onChange((current) => ({
       ...current,
@@ -48,12 +116,16 @@ export function OptionalContext({ value, onChange, onOpenChange }: Props) {
   }
 
   function toggleActivity(option: string) {
-    onChange((current) => ({
-      ...current,
-      activities: current.activities.includes(option)
-        ? current.activities.filter((item) => item !== option)
-        : [...current.activities, option]
-    }));
+    onChange((current) => {
+      const selected = current.activities.includes(option);
+      const activityEffects = { ...current.activityEffects };
+      if (selected) delete activityEffects[option];
+      return {
+        ...current,
+        activities: selected ? current.activities.filter((item) => item !== option) : [...current.activities, option],
+        activityEffects
+      };
+    });
   }
 
   return (
@@ -80,10 +152,71 @@ export function OptionalContext({ value, onChange, onOpenChange }: Props) {
             </button>
           ))}
         </div>
+        {value.activities.filter((activity) => activity !== NO_MARKER_ACTIVITY).map((activity) => (
+          <div className="marker-row" key={activity} role="group" aria-label={`${activity}: your marker`}>
+            <span>{activity}:</span>
+            {(['worse', 'helped'] as const).map((effect) => (
+              <button key={effect} type="button" className={value.activityEffects[activity] === effect ? 'chip small selected' : 'chip small'} aria-pressed={value.activityEffects[activity] === effect} aria-label={`${activity}: ${effect === 'worse' ? 'Made worse' : 'Helped'}`} onClick={() => setActivityEffect(activity, effect)}>
+                {effect === 'worse' ? 'Made worse' : 'Helped'}
+              </button>
+            ))}
+          </div>
+        ))}
       </fieldset>
+
+      <fieldset>
+        <legend>Did pain get in the way {isToday ? 'today' : 'that day'}?</legend>
+        <div className="chip-group">
+          {interferenceOptions.map((level) => (
+            <button key={level} type="button" className={value.interference === level ? 'chip selected' : 'chip'} aria-pressed={value.interference === level} onClick={() => setInterference(level)}>
+              {interferenceLabels[level]}
+            </button>
+          ))}
+        </div>
+        {showsInterferenceAreas(value.interference) && (
+          <div className="sub-question" role="group" aria-label="What did it get in the way of?">
+            <p>What did it get in the way of?</p>
+            <div className="chip-group">
+              {interferenceAreaOptions.map((area) => (
+                <button key={area} type="button" className={value.interferenceAreas.includes(area) ? 'chip selected' : 'chip'} aria-pressed={value.interferenceAreas.includes(area)} onClick={() => toggleInterferenceArea(area)}>
+                  {capitalize(area)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </fieldset>
+
+      {regions.length > 0 && (
+        <fieldset>
+          <legend>Steady or comes and goes?</legend>
+          {regions.map((regionId) => {
+            const chosen = value.areaPatterns[regionId];
+            const prefilled = chosen === undefined ? patternPrefill[regionId] : undefined;
+            const shown = chosen === undefined ? prefilled : chosen ?? undefined;
+            const label = findBodyRegion(regionId)?.label ?? 'Selected area';
+            return (
+              <div className="marker-row" key={regionId} role="group" aria-label={`${label}: steady or comes and goes`}>
+                <span>{label}:</span>
+                {patternOptions.map((pattern) => (
+                  <button key={pattern} type="button" className={shown === pattern ? 'chip small selected' : 'chip small'} aria-pressed={shown === pattern} aria-label={`${label}: ${patternLabels[pattern]}`} onClick={() => setPattern(regionId, pattern)}>
+                    {patternLabels[pattern]}
+                  </button>
+                ))}
+                {prefilled && <em className="prefill-tag">from last time</em>}
+              </div>
+            );
+          })}
+        </fieldset>
+      )}
 
       <div className="compact-grid">
         <OptionSelect label="Sleep" value={value.sleep} options={sleepOptions} onChange={(sleep) => onChange((current) => ({ ...current, sleep }))} />
+        <div className="toggle-cell">
+          <button type="button" className={value.painWokeMe ? 'chip selected' : 'chip'} aria-pressed={value.painWokeMe} onClick={() => onChange((current) => ({ ...current, painWokeMe: !current.painWokeMe }))}>
+            Pain woke me
+          </button>
+        </div>
         <OptionSelect label="Stress" value={value.stress} options={stressOptions} onChange={(stress) => onChange((current) => ({ ...current, stress }))} />
         <OptionSelect label="Mood" value={value.mood} options={moodOptions} onChange={(mood) => onChange((current) => ({ ...current, mood }))} />
         <OptionSelect label="Cycle" value={value.cycle} options={cycleOptions} onChange={(cycle) => onChange((current) => ({ ...current, cycle }))} />
@@ -121,6 +254,11 @@ function OptionSelect<T extends readonly string[]>({ label, value, options, onCh
       </select>
     </label>
   );
+}
+
+function todayLocal() {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
 function capitalize(value: string) {

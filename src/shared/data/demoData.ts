@@ -17,8 +17,10 @@ function demoEntryInputs(): PainEntryInput[] {
       intensity: 5,
       occurredAt: isoDaysAgo(13, 9),
       sensations: ['aching'],
-      activities: ['long drive'],
+      activities: ['Long sitting'],
+      activityEffects: { 'Long sitting': 'worse' },
       sleep: 'okay',
+      areaPatterns: [{ regionId: 'choir-b18', pattern: 'comes-and-goes' }],
       note: 'Started after sitting through a long meeting.'
     },
     {
@@ -28,7 +30,10 @@ function demoEntryInputs(): PainEntryInput[] {
       precisionAreas: ['tender-detail-si-left'],
       sensations: ['sharp', 'tight'],
       sleep: 'poor',
+      painWokeMe: true,
       stress: 'high',
+      interference: 'a-lot',
+      interferenceAreas: ['work', 'exercise'],
       note: 'Woke up stiff, harder to get out of bed.'
     },
     {
@@ -37,14 +42,16 @@ function demoEntryInputs(): PainEntryInput[] {
       occurredAt: isoDaysAgo(9, 14),
       sensations: ['tingling'],
       sleep: 'good',
-      activities: ['short walk', 'stretching']
+      activities: ['Walking'],
+      activityEffects: { Walking: 'helped' },
+      interference: 'a-little'
     },
     {
       regions: ['choir-f36'],
       intensity: 3,
       occurredAt: isoDaysAgo(6, 11),
       sensations: ['numb'],
-      activities: ['standing a while']
+      activities: ['Travel']
     },
     {
       regions: ['choir-b18'],
@@ -52,6 +59,8 @@ function demoEntryInputs(): PainEntryInput[] {
       occurredAt: isoDaysAgo(4, 8),
       sensations: ['aching', 'burning'],
       sleep: 'okay',
+      areaPatterns: [{ regionId: 'choir-b18', pattern: 'comes-and-goes' }],
+      interference: 'a-little',
       medication: { name: 'Ibuprofen', dose: '200mg', perceivedEffect: 'helped' }
     },
     {
@@ -59,7 +68,10 @@ function demoEntryInputs(): PainEntryInput[] {
       intensity: 5,
       occurredAt: isoDaysAgo(2, 16),
       sensations: ['tight'],
-      activities: ['desk work'],
+      activities: ['Long sitting'],
+      activityEffects: { 'Long sitting': 'worse' },
+      sleep: 'poor',
+      painWokeMe: true,
       mood: 'low'
     },
     {

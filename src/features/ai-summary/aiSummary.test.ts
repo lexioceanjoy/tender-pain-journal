@@ -35,6 +35,17 @@ describe('local-offset check-in times', () => {
     expect(Date.parse(withLocalOffset('2026-08-01T03:30:00.000Z', -420))).toBe(Date.parse('2026-08-01T03:30:00.000Z'));
   });
 
+  it('never sends the check-in-gaps fields (none is approved for the AI payload)', () => {
+    const entry = createPainEntry({
+      regions: ['choir-b18'], intensity: 6, activities: ['Long sitting'], interference: 'a-lot', interferenceAreas: ['work'],
+      activityEffects: { 'Long sitting': 'worse' }, areaPatterns: [{ regionId: 'choir-b18', pattern: 'steady' }], painWokeMe: true
+    });
+    const sent = JSON.stringify(buildAiSummaryRequest([entry], '2026-08-01', '2026-08-07'));
+    for (const word of ['interference', 'work', 'activityEffects', 'worse', 'areaPatterns', 'steady', 'painWokeMe', 'woke']) {
+      expect(sent).not.toContain(word);
+    }
+  });
+
   it('never sends a medication dose', () => {
     const entry = createPainEntry({ regions: ['choir-b23'], intensity: 5, medication: { name: 'Ibuprofen', dose: '200 mg', perceivedEffect: 'helped' } });
     expect(buildAiSummaryRequest([entry], '2026-08-01', '2026-08-07').entries[0].medications).toEqual([{ name: 'Ibuprofen', perceivedEffect: 'helped' }]);

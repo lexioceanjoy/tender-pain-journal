@@ -751,21 +751,102 @@ numbness note's wording: "both legs went numb for about an hour").
 
 v2.2 is the prompt that ships under the 2026-10-22 decision.
 
+## v3: coverage findings (2026-10-22, `feat/iteration-c`)
+
+Approved by the product owner as iteration C item 2. Three findings,
+computed on Tender's server from fields already sent; the 3-entry
+minimum and the no-restating rule are unchanged.
+
+- **`treatments[].sensationsOnSameCheckIns`**: the sensations recorded on
+  the check-ins where each medication was logged, with counts (top 3).
+  Descriptive only: it compares no ratings, so it is not an association
+  and medications are still never association factors. Listed only for a
+  treatment logged on at least 3 check-ins
+  (`TREATMENT_SENSATIONS_MIN_ENTRIES`, the association support minimum;
+  product-owner decision, 2026-10-22, after the v3 run). In the
+  medications fixture that keeps ibuprofen with aching (3 of 3) and drops
+  naproxen (2 check-ins). The prompt forbids saying a treatment was taken
+  for, or worked on, a sensation.
+- **`firstRecordedTogether`**: locations and sensations first recorded
+  in range on the same date, when there are 2 or more, so the narrative
+  reports them in one sentence (precision-areas: Right lower back,
+  Tailbone area and sharp on 2026-03-07).
+- **`sensationsBySide`**: on check-ins recording left-side and
+  right-side locations, the most frequent sensation per side. Present
+  only when each side has at least 3 check-ins (`SIDE_MIN_ENTRIES`, the
+  association support minimum), the top sensation is on at least half of
+  that side's check-ins with no tie, and the two sides differ
+  (precision-areas: left aching 3 of 4, right tight 2 of 3). Sensations
+  are recorded per check-in, so a check-in recording both sides counts
+  for both.
+
+Not addressed, by decision: typical-two-weeks' poor sleep on both 7/10s
+stays below the 3-entry minimum, and rising's second-half framing is
+already the trend finding.
+
+## v3: "Questions this record raises" (2026-10-22, `feat/iteration-c`)
+
+Approved by the product owner as iteration C item 3, with the
+`CLAUDE.md` rule change.
+
+- **Prompt:** an optional last section, "Questions this record raises",
+  only when a finding leaves a real gap or ambiguity in what was recorded.
+  At most 2 questions, each naming its date or label, about what the
+  record does or doesn't show. Never whether a symptom is serious, normal
+  or a sign of something, what it means or causes it, or whether it needs
+  attention. No questions anywhere else.
+- **Eval (`checkQuestions`):**
+  - `question-count` (hard fail): more than 2 questions in the section.
+  - `question-judges-symptom` (hard fail): any question, in the section
+    or not, matching `SYMPTOM_JUDGEMENT` (seriousness, normality,
+    "sign of", "could this be", causes, needs care, "should be checked",
+    "worth getting looked at", and similar).
+  - `question-not-about-data` (flag): a question that names no record,
+    check-in, note or date, or a non-judging question outside the section.
+  - The existing banned-language patterns (`clinical-attention`,
+    `caused-by`, triage) still apply to the section.
+
+## v3 results (2026-10-22)
+
+One live run was pre-approved, with one fix-and-re-run allowed. Not
+rescored (product-owner decision); the automatic checks decide.
+
+- **First run** `eval/narrative/results/2026-10-22T16-42-39-v3/`
+  (commit `5d5caa3`): 38 of 39. The one failure, rising #2, was a checker
+  false positive: the numbers check read "2026-03-11 and 6.3/10" as a
+  rating of 11. The narrative itself was correct. Fixed in `checks.ts`
+  with a regression test (the commit recording these results). Rechecked without API calls:
+  39 of 39.
+- **Re-run of record** `eval/narrative/results/2026-10-22T16-45-36-v3-rerun/`
+  (Anthropic `claude-sonnet-5-5`; `run.json` records `071ffea`, the checker fix before these notes were amended into it): **39 of 39** hard
+  checks, 3 of 3 pre-gates. Words: min 29, median 71, max 136. Flags:
+  `quotes-note` ×3 only. No question judged a symptom.
+- **Questions section:** present in 11 of 39 narratives (cycle-context,
+  long-gap and precision-areas in all 3 samples, rising in 2), always 1–2
+  questions about a gap in check-ins, what preceded an outlier, or what
+  happened on a first-recorded date. One (precision-areas #1) asks which
+  location the 2026-03-07 sharp sensation belonged to, a real ambiguity
+  since sensations are recorded per check-in. Some use "- " bullets for
+  2 questions, against the 3-item bullet rule; not flagged.
+- **Coverage findings in use:** medications names ibuprofen with aching
+  (3 of 3) and naproxen with sharp (2 of 2; naproxen's pairing was later
+  dropped by the 3-check-in minimum, not re-run); precision-areas reports the
+  2026-03-07 firsts in one sentence and contrasts left aching (3 of 4)
+  with right tight (2 of 3).
+
 ## Later rounds (not started)
 
-- **Optional "questions this record raises" section**, limited to gaps or
-  ambiguities in the data (for example, what else differed on the day a
-  location was first recorded), never whether a symptom needs attention.
-  Needs a `CLAUDE.md` rule change first, since the current no-triage rule
-  and the eval's clinical-attention check would fail it.
+- ~~Optional "questions this record raises" section~~: done in v3
+  (above).
 - **Insight the findings don't yet surface** (from the v2 review):
-  sub-period trends and activity patterns in long dense ranges;
-  sensation by side (precision-areas: right "tight", left "aching");
-  linking first-recorded labels that started on the same day; which
-  medication was logged with which sensation; and shared context on the
-  highest-rated check-ins below the 3-entry support minimum
-  (typical-two-weeks: poor sleep on both 7/10s).
-- **Close the coverage gap** (the 2026-10-22 ship exception). Coverage
+  sub-period trends and activity patterns in long dense ranges; and
+  shared context on the highest-rated check-ins below the 3-entry
+  support minimum (typical-two-weeks: poor sleep on both 7/10s). Sensation
+  by side, same-day first-recorded labels and medication-with-sensation
+  were added in v3 (above).
+- **Close the coverage gap** (the 2026-10-22 ship exception). *Medications
+  and precision-areas addressed in v3; typical-two-weeks left by decision.*
+  Coverage
   fell on four fixtures; the v2 review notes say what was missed:
   - medications (5 → 4): naproxen logged with sharp pain and ibuprofen
     with aching;

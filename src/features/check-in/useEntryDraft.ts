@@ -14,6 +14,8 @@ export type EntryDraft = {
   areaOverrides: AreaOverrides;
   precisionAreas: string[];
   occurredAt: string;
+  /** Add context was opened during this check-in: pre-filled patterns may be saved. */
+  contextOpened: boolean;
   editingEntry?: PainEntry;
 };
 
@@ -33,13 +35,15 @@ export function useEntryDraft() {
       intensityConfirmed: true,
       context: {
         ...emptyContext,
-        sensations: [...(input.sensations ?? [])]
+        sensations: [...(input.sensations ?? [])],
+        areaPatterns: Object.fromEntries((input.areaPatterns ?? []).map(({ regionId, pattern }) => [regionId, pattern]))
       },
       areaOverrides: Object.fromEntries(
         (input.areaDetails ?? []).map(({ regionId, ...details }) => [regionId, { ...details }])
       ),
       precisionAreas: [...(input.precisionAreas ?? [])],
-      occurredAt: toDateTimeLocal(input.occurredAt ?? new Date().toISOString())
+      occurredAt: toDateTimeLocal(input.occurredAt ?? new Date().toISOString()),
+      contextOpened: false
     });
   }
 
@@ -60,6 +64,11 @@ export function useEntryDraft() {
         medicationName: medication?.name ?? '',
         medicationDose: medication?.dose ?? '',
         medicationEffect: medication?.perceivedEffect,
+        interference: entry.context?.interference,
+        interferenceAreas: [...(entry.context?.interferenceAreas ?? [])],
+        activityEffects: { ...(entry.context?.activityEffects ?? {}) },
+        painWokeMe: entry.context?.painWokeMe === true,
+        areaPatterns: Object.fromEntries((entry.areaPatterns ?? []).map(({ regionId, pattern }) => [regionId, pattern])),
         note: entry.note ?? ''
       },
       areaOverrides: Object.fromEntries(
@@ -67,6 +76,7 @@ export function useEntryDraft() {
       ),
       precisionAreas: [...(entry.precisionAreas ?? [])],
       occurredAt: toDateTimeLocal(entry.occurredAt),
+      contextOpened: false,
       editingEntry: entry
     });
   }
@@ -83,7 +93,8 @@ function emptyDraft(): EntryDraft {
     context: { ...emptyContext },
     areaOverrides: {},
     precisionAreas: [],
-    occurredAt: toDateTimeLocal(new Date().toISOString())
+    occurredAt: toDateTimeLocal(new Date().toISOString()),
+    contextOpened: false
   };
 }
 

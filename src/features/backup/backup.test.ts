@@ -31,4 +31,17 @@ describe('Tender backup', () => {
     invalid.entries[0].precisionAreas = ['tender-detail-si-left', 'tender-detail-si-left'];
     expect(() => parseBackup(JSON.stringify(invalid))).toThrow();
   });
+
+  it('writes version 2, round-trips every new field, and still reads a version 1 backup', () => {
+    const entry = createPainEntry({
+      regions: ['choir-b18'], intensity: 6, activities: ['Long sitting'], interference: 'unable',
+      interferenceAreas: ['work', 'social'], activityEffects: { 'Long sitting': 'worse' },
+      areaPatterns: [{ regionId: 'choir-b18', pattern: 'steady' }], painWokeMe: true
+    });
+    const backup = createBackup([entry]);
+    expect(JSON.parse(backup).schemaVersion).toBe(2);
+    expect(parseBackup(backup)).toEqual([entry]);
+    const v1 = { ...createPainEntry({ regions: ['choir-b18'], intensity: 4 }), schemaVersion: 1 };
+    expect(parseBackup(JSON.stringify({ app: 'Tender', schemaVersion: 1, exportedAt: new Date().toISOString(), entries: [v1] }))).toEqual([v1]);
+  });
 });

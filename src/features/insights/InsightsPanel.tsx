@@ -1,13 +1,15 @@
 import { useMemo, useState } from 'react';
 import type { PainEntry } from '../../shared/data/painEntry';
 import { appointmentReportFilename, buildAppointmentReport } from '../reports/appointmentReport';
-import { buildInsights } from './insights';
+import { interferenceLabels, interferenceOptions } from '../../shared/data/painEntry';
+import { activityMarkers, buildInsights, formatShortDate, newAreasForDisplay, regionTiming } from './insights';
 import { AiNarrativePanel } from '../ai-summary/AiNarrativePanel';
 
 export function InsightsPanel({ entries }: { entries: PainEntry[] }) {
   const [from, setFrom] = useState(() => dateDaysAgo(29));
   const [to, setTo] = useState(() => dateDaysAgo(0));
   const summary = useMemo(() => buildInsights(entries, from, to), [entries, from, to]);
+  const newAreas = newAreasForDisplay(summary);
 
   function downloadAppointmentSummary() {
     const report = buildAppointmentReport(summary, from, to);
@@ -39,7 +41,20 @@ export function InsightsPanel({ entries }: { entries: PainEntry[] }) {
           {summary.commonRegions.length > 0 && (
             <div className="observation-block">
               <h3>Most recorded locations</h3>
-              <ul>{summary.commonRegions.map((region) => <li key={region.id}><span>{region.label}</span><strong>{region.count}× · avg {region.averageIntensity}/10</strong></li>)}</ul>
+              <ul>{summary.commonRegions.map((region) => (
+                <li key={region.id}>
+                  <span>{region.label}{regionTiming(region) && <><br /><small className="muted">{regionTiming(region)}</small></>}</span>
+                  <strong>{region.count}× · avg {region.averageIntensity}/10</strong>
+                </li>
+              ))}</ul>
+              <p>Check-ins are samples, so “since” is when recording started, not how long pain has lasted.</p>
+            </div>
+          )}
+          {newAreas && (
+            <div className="observation-block">
+              <h3>New in this period</h3>
+              <ul>{newAreas.shown.map((area) => <li key={area.id}><span>{area.label}</span><strong>first recorded {formatShortDate(area.firstRecorded)}</strong></li>)}</ul>
+              <p>{newAreas.more > 0 && `And ${newAreas.more} more. `}Not recorded in the 30 days before.</p>
             </div>
           )}
           {summary.commonPrecisionAreas.length > 0 && (
@@ -52,8 +67,33 @@ export function InsightsPanel({ entries }: { entries: PainEntry[] }) {
           {summary.commonActivities.length > 0 && (
             <div className="observation-block">
               <h3>Context recorded alongside pain</h3>
-              <ul>{summary.commonActivities.map((activity) => <li key={activity.label}><span>{activity.label}</span><strong>{activity.count}×</strong></li>)}</ul>
-              <p>These are co-occurrences in your entries, not evidence that an activity caused pain.</p>
+              <ul>{summary.commonActivities.map((activity) => (
+                <li key={activity.label}>
+                  <span>{activity.label}{activityMarkers(activity) && <><br /><small className="muted">{activityMarkers(activity)}</small></>}</span>
+                  <strong>{activity.count}×</strong>
+                </li>
+              ))}</ul>
+              <p>These are co-occurrences in your entries, not evidence that an activity caused pain.{summary.commonActivities.some((activity) => activity.worse || activity.helped) && ' “Made worse” and “helped” are your own markers.'}</p>
+            </div>
+          )}
+          {summary.interference && (
+            <div className="observation-block">
+              <h3>Days pain got in the way</h3>
+              <ul>
+                {interferenceOptions.filter((level) => summary.interference!.levels[level] > 0).map((level) => (
+                  <li key={level}><span>{interferenceLabels[level]}</span><strong>{summary.interference!.levels[level]} day{summary.interference!.levels[level] === 1 ? '' : 's'}</strong></li>
+                ))}
+                {summary.interference.areas.map((item) => (
+                  <li key={item.area}><span>Got in the way of {item.area}</span><strong>{item.days} day{item.days === 1 ? '' : 's'}</strong></li>
+                ))}
+              </ul>
+              <p>As you recorded it. Days without an answer aren’t counted.</p>
+            </div>
+          )}
+          {summary.painWoke && (
+            <div className="observation-block">
+              <h3>Sleep</h3>
+              <p className="insight-line">Pain woke you on {summary.painWoke.nights} night{summary.painWoke.nights === 1 ? '' : 's'} (of {summary.painWoke.ofNights} with a sleep answer).</p>
             </div>
           )}
           <div className="report-action">

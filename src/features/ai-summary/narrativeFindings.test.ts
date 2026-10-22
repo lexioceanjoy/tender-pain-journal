@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { AiSummaryRequest } from './aiSummarySchema';
 import {
   ASSOCIATION_MIN_MEAN_DIFF, computeFindings, countWords, DATA_GAP_MIN_DAYS, limitsSentence, MAX_NOTES,
-  MIN_ENTRIES_FOR_NARRATIVE, narrativeGate, OUTLIER_MIN_DEVIATION, TREND_MIN_DELTA, TREND_MIN_ENTRIES
+  MIN_ENTRIES_FOR_NARRATIVE, narrativeGate, OUTLIER_MIN_DEVIATION, SIDE_MIN_ENTRIES, TREATMENT_SENSATIONS_MIN_ENTRIES, TREND_MIN_DELTA, TREND_MIN_ENTRIES
 } from './narrativeFindings';
 
 type Entry = AiSummaryRequest['entries'][number];
@@ -155,14 +155,44 @@ describe('computeFindings', () => {
 
   it('tallies treatments with the person\'s perceived-effect labels and no dose', () => {
     const findings = computeFindings(request([
-      entry(0, 6, { medications: [{ name: 'Ibuprofen', perceivedEffect: 'helped' }] }),
-      entry(1, 6, { medications: [{ name: 'ibuprofen', perceivedEffect: 'not-sure' }] }),
-      entry(2, 5, { medications: [{ name: 'Naproxen' }] })
+      entry(0, 6, { medications: [{ name: 'Ibuprofen', perceivedEffect: 'helped' }], sensations: ['aching'] }),
+      entry(1, 6, { medications: [{ name: 'ibuprofen', perceivedEffect: 'not-sure' }], sensations: ['aching', 'tight'] }),
+      entry(2, 5, { medications: [{ name: 'Naproxen' }] }),
+      entry(3, 7, { sensations: ['sharp'] })
     ]));
     expect(findings.treatments).toEqual([
-      { name: 'Ibuprofen', entries: 2, perceivedEffects: { helped: 1, 'not sure yet': 1 } },
-      { name: 'Naproxen', entries: 1, perceivedEffects: {} }
+      { name: 'Ibuprofen', entries: 2, perceivedEffects: { helped: 1, 'not sure yet': 1 }, sensationsOnSameCheckIns: [] },
+      { name: 'Naproxen', entries: 1, perceivedEffects: {}, sensationsOnSameCheckIns: [] }
     ]);
+  });
+
+  it(`lists a treatment's sensations only from ${TREATMENT_SENSATIONS_MIN_ENTRIES} check-ins`, () => {
+    const logged = (n: number, sensations: Entry['sensations']) => entry(n, 6, { medications: [{ name: 'Ibuprofen' }], sensations });
+    const two = [logged(0, ['aching']), logged(1, ['aching', 'tight']), entry(2, 7, { sensations: ['sharp'] })];
+    expect(computeFindings(request(two)).treatments[0].sensationsOnSameCheckIns).toEqual([]);
+    expect(computeFindings(request([...two, logged(3, ['aching'])])).treatments[0].sensationsOnSameCheckIns)
+      .toEqual([{ label: 'aching', entries: 3 }, { label: 'tight', entries: 1 }]);
+  });
+
+  it('groups locations and sensations first recorded on the same day', () => {
+    const findings = computeFindings(request([
+      entry(0, 4, { sensations: ['aching'] }), entry(1, 4, { sensations: ['aching'] }), entry(2, 4, { sensations: ['aching'] }),
+      entry(3, 7, { locations: ['Left lower back', 'Tailbone area', 'Right lower back'], sensations: ['sharp'] }),
+      entry(4, 4, { sensations: ['aching'] }), entry(5, 4, { sensations: ['aching', 'tight'] })
+    ]));
+    expect(findings.firstRecordedTogether).toEqual([{ date: day(3), locations: ['Right lower back', 'Tailbone area'], sensations: ['sharp'] }]);
+  });
+
+  it(`reports side-specific sensations only with ${SIDE_MIN_ENTRIES}+ check-ins per side and different top sensations`, () => {
+    const left = (n: number, sensations: Entry['sensations']) => entry(n, 5, { locations: ['Left buttock'], sensations });
+    const right = (n: number, sensations: Entry['sensations']) => entry(n, 5, { locations: ['Right buttock'], sensations });
+    const base = [left(0, ['aching']), left(1, ['aching']), left(2, ['aching', 'tight']), right(3, ['tight']), right(4, ['tight'])];
+    expect(computeFindings(request(base)).sensationsBySide).toEqual([]);
+    expect(computeFindings(request([...base, right(5, ['sharp'])])).sensationsBySide).toEqual([
+      { side: 'left', entries: 3, sensation: 'aching', sensationEntries: 3 },
+      { side: 'right', entries: 3, sensation: 'tight', sensationEntries: 2 }
+    ]);
+    expect(computeFindings(request([...base, right(5, ['aching']), right(6, ['aching']), right(7, ['aching'])])).sensationsBySide).toEqual([]);
   });
 
   it(`sends notes newest first with their date, at most ${MAX_NOTES}`, () => {

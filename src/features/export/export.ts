@@ -30,6 +30,11 @@ export type ExportableEntry = {
   mood?: string;
   cycle?: string;
   medications: ExportableMedication[];
+  interference?: string;
+  interferenceAreas: string[];
+  activityEffects: Record<string, string>;
+  areaPatterns: Array<{ region: string; pattern: string }>;
+  painWokeMe?: boolean;
   note?: string;
 };
 
@@ -58,6 +63,11 @@ export function toExportableEntry(entry: PainEntry): ExportableEntry {
     mood: entry.context?.mood,
     cycle: entry.context?.cycle,
     medications: entry.context?.medications ?? [],
+    interference: entry.context?.interference,
+    interferenceAreas: entry.context?.interferenceAreas ?? [],
+    activityEffects: { ...(entry.context?.activityEffects ?? {}) } as Record<string, string>,
+    areaPatterns: (entry.areaPatterns ?? []).map((item) => ({ region: findBodyRegion(item.regionId)?.label ?? item.regionId, pattern: item.pattern })),
+    painWokeMe: entry.context?.painWokeMe,
     note: entry.note
   };
 }
@@ -73,7 +83,8 @@ export function buildExportJson(entries: PainEntry[]) {
 const CSV_COLUMNS = [
   'id', 'occurredAt', 'createdAt', 'updatedAt', 'intensity', 'sensations',
   'regions', 'precisionAreas', 'areaDetails', 'activities', 'sleep',
-  'stress', 'mood', 'cycle', 'medications', 'note'
+  'stress', 'mood', 'cycle', 'medications', 'interference', 'interferenceAreas',
+  'activityEffects', 'areaPatterns', 'painWokeMe', 'note'
 ] as const;
 
 function csvField(value: string) {
@@ -114,6 +125,11 @@ function exportRowValues(row: ExportableEntry): Record<typeof CSV_COLUMNS[number
     mood: row.mood ?? '',
     cycle: row.cycle ?? '',
     medications: medicationsToText(row.medications),
+    interference: row.interference ?? '',
+    interferenceAreas: row.interferenceAreas.join('; '),
+    activityEffects: Object.entries(row.activityEffects).map(([activity, effect]) => `${activity}: ${effect}`).join('; '),
+    areaPatterns: row.areaPatterns.map((item) => `${item.region}: ${item.pattern}`).join('; '),
+    painWokeMe: row.painWokeMe ? 'true' : '',
     note: row.note ?? ''
   };
 }

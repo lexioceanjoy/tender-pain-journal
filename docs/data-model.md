@@ -9,6 +9,7 @@ The data model is the long-lived part of a health journal. Screens and visual de
 ```ts
 type PainEntry = {
   id: string;
+  schemaVersion: 1 | 2;       // 2 = written since the check-in gaps; old entries stay 1
   createdAt: string;          // ISO 8601 timestamp, stored with timezone offset
   updatedAt: string;
   occurredAt: string;         // defaults to now and is editable in the check-in
@@ -17,6 +18,7 @@ type PainEntry = {
   sensations?: Sensation[];   // overall/default sensations
   areaDetails?: AreaDetail[]; // optional exceptions only
   precisionAreas?: string[];  // optional Tender detail IDs
+  areaPatterns?: Array<{ regionId: BodyRegionId; pattern: 'steady' | 'comes-and-goes' }>;
   context?: EntryContext;
   note?: string;
 };
@@ -35,6 +37,10 @@ type EntryContext = {
   mood?: 'low' | 'neutral' | 'good';
   cycle?: 'period' | 'pre-period' | 'ovulation' | 'post-period' | 'other';
   medications?: MedicationLog[];
+  interference?: 'none' | 'a-little' | 'a-lot' | 'unable';      // "Did pain get in the way?"
+  interferenceAreas?: Array<'work' | 'exercise' | 'chores' | 'social'>; // only with a-lot / unable
+  activityEffects?: Record<string, 'worse' | 'helped'>;        // keys must be in activities; never "Poor sleep"
+  painWokeMe?: true;                                            // only true is stored
 };
 
 type MedicationLog = {
@@ -50,7 +56,7 @@ type MedicationLog = {
 - `BodyRegion`: stable ID, label, side, view, grouping, and SVG path reference.
 - `AppSettings`: theme preference, safety-message dismissal state (if any), and consent records. No health entry data is mixed into settings.
 - `ConsentRecord`: version of notice, timestamp, selected purpose, and revocation timestamp when applicable.
-- `BackupEnvelope`: schema version, export timestamp, and entries. It is a portable container, not an encrypted cloud backup.
+- `BackupEnvelope`: schema version (written as 2; import accepts 1 and 2, so an older app rejects a newer backup visibly instead of silently dropping fields), export timestamp, and entries. It is a portable container, not an encrypted cloud backup.
 
 ## Guardrails
 
@@ -63,3 +69,5 @@ type MedicationLog = {
 - The app records what the person selected; it does not infer diagnoses, menstrual-cycle dates, triggers, or medication effects.
 - Future AI requests use a temporary selected-data payload, not unrestricted database access.
 - Deletion is an explicit permanent action with a second confirmation. Recovery depends on a previously downloaded backup.
+- Check-in gaps fields (`docs/plans/check-in-gaps.md`) are all optional and store nothing unless the person sets them: no defaults, no "neutral", no `false`. A pre-filled steady/comes-and-goes value is saved only if Add context was opened during that check-in. Repeat last copies `areaPatterns` only.
+- "New area" and "recorded since" are derived in Insights (`NEW_AREA_LOOKBACK_DAYS = 30`, `RUN_GAP_DAYS = 14` in `insights.ts`) and never stored. None of the check-in gaps fields, stored or derived, is sent to the AI provider.

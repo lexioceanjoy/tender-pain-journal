@@ -25,6 +25,13 @@ output ceiling. See `docs/plans/narrative-v2.md`.
   locations and sensations, data gaps, treatments with the person's
   perceived-effect labels, and notes with their date. Thresholds are named
   constants, tested at their boundaries.
+- **v3 (2026-10-22): three more derived findings**, from fields already
+  sent: the sensations on the check-ins where each medication was logged
+  (only for a medication on 3+ check-ins),
+  locations and sensations first recorded on the same day, and the most
+  frequent sensation per body side when the sides differ (each side needs
+  3+ check-ins). No new raw data reaches the provider; the consent copy
+  names each one (`consentFields.ts`).
 - **Pre-gates make no AI call.** Fewer than 3 in-range check-ins, or
   identical check-ins with no note, get a fixed rule-based message. The
   browser checks first, so nothing leaves the device in that case; the

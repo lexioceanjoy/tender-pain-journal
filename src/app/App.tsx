@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { CheckInScreen } from '../features/check-in/CheckInScreen';
+import { CheckInScreen, draftPatternPrefill } from '../features/check-in/CheckInScreen';
+import { patternsToSave } from '../features/check-in/patternPrefill';
 import { useEntryDraft } from '../features/check-in/useEntryDraft';
 import { HistoryScreen } from '../features/history/HistoryScreen';
 import { EntryDetailDialog } from '../features/history/EntryDetailDialog';
@@ -29,7 +30,9 @@ export function App() {
   useEffect(() => {
     listPainEntries().then(async (loaded) => {
       if (loaded.length === 0 && !hasDemoDataDecisionBeenMade()) {
-        const seeded = buildDemoEntries();
+        // Newest first, as listPainEntries() returns them, so Today's
+        // "most recent" and Repeat last use the latest sample on first visit.
+        const seeded = buildDemoEntries().sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
         await Promise.all(seeded.map((entry) => savePainEntry(entry)));
         recordDemoSeeded(seeded.map((entry) => entry.id));
         setDemoEntryIds(seeded.map((entry) => entry.id));
@@ -101,6 +104,11 @@ export function App() {
           .filter(([regionId]) => draft.regions.includes(regionId))
           .map(([regionId, override]) => ({ regionId, ...override })),
         precisionAreas: draft.precisionAreas,
+        areaPatterns: patternsToSave(draft.regions, draft.context, draftPatternPrefill(draft, entries), draft.contextOpened),
+        interference: draft.context.interference,
+        interferenceAreas: draft.context.interferenceAreas,
+        activityEffects: draft.context.activityEffects,
+        painWokeMe: draft.context.painWokeMe,
         note: draft.context.note
       };
       const entry = draft.mode === 'edit' && draft.editingEntry
@@ -185,6 +193,7 @@ export function App() {
             draft={draft}
             setDraft={setDraft}
             saveState={saveState}
+            entries={entries}
             onCancel={cancelDraft}
             onSave={handleSave}
           />
