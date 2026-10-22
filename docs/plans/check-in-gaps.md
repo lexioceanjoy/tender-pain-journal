@@ -1,8 +1,8 @@
 # Check-in additions for clinician usefulness
 
-Status: revised with product-owner decisions (2026-10-20; see "Decisions"
-at the end). Planning only; no code has been changed. Nothing here should
-be built until the product owner approves the final plan.
+Status: approved by the product owner and implemented on
+`feat/iteration-c` (2026-10-22); see "Implementation notes" at the end.
+None of the new fields is sent to the AI provider.
 
 ## Why
 
@@ -466,3 +466,27 @@ the check-in and Insights flows.
 7. **AI payload for the other new fields** (interference, activity
    markers, patterns, "Pain woke me"). Still not sent. Each needs
    separate explicit approval.
+
+## Implementation notes (2026-10-22, `feat/iteration-c`)
+
+- Built as planned, in one commit. Schema version 2 for new and edited
+  entries and for backups; version 1 entries and backups still load.
+- **"New in this period"** uses the new-area rule (no recording of that
+  area in the previous 30 days), for CHOIR regions and precision areas.
+  On a fresh journal every area is "new", which is accurate.
+- **"Recorded since"** shows "since Oct 3 · recorded on 9 of 15 days",
+  where the span runs from the start of the current run to the latest
+  recording on or before the range end. A caption says check-ins are
+  samples, not how long pain has lasted.
+- **Pre-fill:** tapping either chip on a pre-filled row makes it the
+  person's choice (the "from last time" tag goes); tapping their own
+  pressed chip clears it, and a cleared row doesn't pre-fill again.
+- Marker and pattern chips are 44 px tall for touch.
+- The seeded demo data now includes impact, markers, patterns and "Pain
+  woke me", so the new Insights blocks show in the demo.
+- `tests/e2e/check-in-budget.spec.ts` covers the four-action path under
+  30 seconds with 4-second pauses, the hidden controls, nothing stored by
+  default (including with an earlier pattern to pre-fill), Repeat last
+  under 10 seconds, and the new controls saving and showing in Insights.
+- `aiSummary.test.ts` checks that none of the new fields reaches the AI
+  request.

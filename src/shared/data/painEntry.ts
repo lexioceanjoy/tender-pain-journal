@@ -5,6 +5,27 @@ export const sleepOptions = ['poor', 'okay', 'good'] as const;
 export const stressOptions = ['low', 'medium', 'high'] as const;
 export const moodOptions = ['low', 'neutral', 'good'] as const;
 export const cycleOptions = ['period', 'pre-period', 'ovulation', 'post-period', 'other'] as const;
+// Check-in gaps (docs/plans/check-in-gaps.md). All optional; never sent to the AI provider.
+export const interferenceOptions = ['none', 'a-little', 'a-lot', 'unable'] as const;
+export const interferenceAreaOptions = ['work', 'exercise', 'chores', 'social'] as const;
+export const activityEffectOptions = ['worse', 'helped'] as const;
+export const patternOptions = ['steady', 'comes-and-goes'] as const;
+/** The one activity chip that never takes a marker: Sleep and "Pain woke me" cover it. */
+export const NO_MARKER_ACTIVITY = 'Poor sleep';
+
+export type Interference = typeof interferenceOptions[number];
+export type InterferenceArea = typeof interferenceAreaOptions[number];
+export type ActivityEffect = typeof activityEffectOptions[number];
+export type AreaPattern = typeof patternOptions[number];
+
+export const interferenceLabels: Record<Interference, string> = {
+  none: 'No',
+  'a-little': 'A little',
+  'a-lot': 'A lot',
+  unable: 'Couldn’t do usual things'
+};
+export const patternLabels: Record<AreaPattern, string> = { steady: 'Steady', 'comes-and-goes': 'Comes and goes' };
+export const activityEffectLabels: Record<ActivityEffect, string> = { worse: 'made worse', helped: 'helped' };
 
 export const medicationLogSchema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -20,7 +41,8 @@ export const areaDetailSchema = z.object({
 
 export const painEntrySchema = z.object({
   id: z.string().min(1),
-  schemaVersion: z.literal(1),
+  // 2 adds the check-in-gaps fields. Old entries stay 1 and are never rewritten.
+  schemaVersion: z.union([z.literal(1), z.literal(2)]),
   createdAt: z.string().datetime({ offset: true }),
   updatedAt: z.string().datetime({ offset: true }),
   occurredAt: z.string().datetime({ offset: true }),
@@ -29,13 +51,18 @@ export const painEntrySchema = z.object({
   sensations: z.array(z.enum(sensationOptions)).optional(),
   areaDetails: z.array(areaDetailSchema).optional(),
   precisionAreas: z.array(z.string().startsWith('tender-detail-')).optional(),
+  areaPatterns: z.array(z.object({ regionId: z.string().min(1), pattern: z.enum(patternOptions) })).optional(),
   context: z.object({
     activities: z.array(z.string().trim().min(1).max(80)).optional(),
     sleep: z.enum(sleepOptions).optional(),
     stress: z.enum(stressOptions).optional(),
     mood: z.enum(moodOptions).optional(),
     cycle: z.enum(cycleOptions).optional(),
-    medications: z.array(medicationLogSchema).optional()
+    medications: z.array(medicationLogSchema).optional(),
+    interference: z.enum(interferenceOptions).optional(),
+    interferenceAreas: z.array(z.enum(interferenceAreaOptions)).optional(),
+    activityEffects: z.record(z.string(), z.enum(activityEffectOptions)).optional(),
+    painWokeMe: z.literal(true).optional()
   }).optional(),
   note: z.string().trim().max(2000).optional()
 }).superRefine((entry, context) => {
@@ -56,6 +83,28 @@ export const painEntrySchema = z.object({
       });
     }
     detailIds.add(detail.regionId);
+  });
+  const patternIds = new Set<string>();
+  entry.areaPatterns?.forEach((item, index) => {
+    if (!entry.regions.includes(item.regionId)) {
+      context.addIssue({ code: 'custom', path: ['areaPatterns', index, 'regionId'], message: 'Pattern must refer to a selected region' });
+    }
+    if (patternIds.has(item.regionId)) {
+      context.addIssue({ code: 'custom', path: ['areaPatterns', index, 'regionId'], message: 'Pattern cannot be duplicated' });
+    }
+    patternIds.add(item.regionId);
+  });
+  const areas = entry.context?.interferenceAreas;
+  if (areas?.length && entry.context?.interference !== 'a-lot' && entry.context?.interference !== 'unable') {
+    context.addIssue({ code: 'custom', path: ['context', 'interferenceAreas'], message: 'Life areas need "a lot" or "couldn\'t do usual things"' });
+  }
+  if (areas && new Set(areas).size !== areas.length) {
+    context.addIssue({ code: 'custom', path: ['context', 'interferenceAreas'], message: 'Life areas cannot be duplicated' });
+  }
+  Object.keys(entry.context?.activityEffects ?? {}).forEach((activity) => {
+    if (activity === NO_MARKER_ACTIVITY || !entry.context?.activities?.includes(activity)) {
+      context.addIssue({ code: 'custom', path: ['context', 'activityEffects', activity], message: 'Marker must refer to a selected activity other than Poor sleep' });
+    }
   });
   if (entry.precisionAreas && new Set(entry.precisionAreas).size !== entry.precisionAreas.length) {
     context.addIssue({
@@ -82,6 +131,11 @@ export type PainEntryInput = {
   medication?: { name: string; dose?: string; perceivedEffect?: 'helped' | 'no-change' | 'not-sure' };
   areaDetails?: Array<{ regionId: string; intensity?: number; sensations?: Sensation[] }>;
   precisionAreas?: string[];
+  areaPatterns?: Array<{ regionId: string; pattern: AreaPattern }>;
+  interference?: Interference;
+  interferenceAreas?: InterferenceArea[];
+  activityEffects?: Partial<Record<string, ActivityEffect>>;
+  painWokeMe?: boolean;
   note?: string;
 };
 
@@ -99,23 +153,37 @@ function entryContent(input: PainEntryInput) {
     sensations: input.sensations?.length ? input.sensations : undefined,
     areaDetails: input.areaDetails?.length ? input.areaDetails : undefined,
     precisionAreas: input.precisionAreas?.length ? input.precisionAreas : undefined,
+    areaPatterns: input.areaPatterns?.length ? input.areaPatterns : undefined,
     context: {
       activities: input.activities?.length ? input.activities : undefined,
       sleep: input.sleep,
       stress: input.stress,
       mood: input.mood,
       cycle: input.cycle,
-      medications
+      medications,
+      interference: input.interference,
+      interferenceAreas: input.interference === 'a-lot' || input.interference === 'unable'
+        ? input.interferenceAreas?.length ? input.interferenceAreas : undefined
+        : undefined,
+      activityEffects: activityEffects(input),
+      painWokeMe: input.painWokeMe ? true as const : undefined
     },
     note: input.note?.trim() || undefined
   };
+}
+
+// Neutral is the absence of a key; markers only for selected activities.
+function activityEffects(input: PainEntryInput) {
+  const effects = Object.entries(input.activityEffects ?? {})
+    .filter(([activity, effect]) => effect && activity !== NO_MARKER_ACTIVITY && input.activities?.includes(activity));
+  return effects.length ? Object.fromEntries(effects) as Record<string, ActivityEffect> : undefined;
 }
 
 export function createPainEntry(input: PainEntryInput): PainEntry {
   const now = new Date().toISOString();
   return painEntrySchema.parse({
     id: crypto.randomUUID(),
-    schemaVersion: 1,
+    schemaVersion: 2,
     createdAt: now,
     updatedAt: now,
     ...entryContent(input)
@@ -125,6 +193,7 @@ export function createPainEntry(input: PainEntryInput): PainEntry {
 export function updatePainEntry(existing: PainEntry, input: PainEntryInput): PainEntry {
   return painEntrySchema.parse({
     ...existing,
+    schemaVersion: 2,
     updatedAt: new Date().toISOString(),
     ...entryContent(input)
   });
@@ -141,7 +210,9 @@ export function repeatPainEntryInput(entry: PainEntry, occurredAt = new Date().t
       intensity: detail.intensity,
       sensations: detail.sensations ? [...detail.sensations] : undefined
     })),
-    precisionAreas: entry.precisionAreas ? [...entry.precisionAreas] : undefined
+    precisionAreas: entry.precisionAreas ? [...entry.precisionAreas] : undefined,
+    // A property of the pain, like sensations; the one-off context fields are not copied.
+    areaPatterns: entry.areaPatterns?.map((item) => ({ ...item }))
   };
 }
 

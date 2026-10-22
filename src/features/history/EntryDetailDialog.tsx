@@ -1,6 +1,6 @@
 import { findBodyRegion } from '../body-map/bodyRegions';
 import { findPrecisionArea } from '../body-map/precisionAreas';
-import { getAreaDetails, type PainEntry } from '../../shared/data/painEntry';
+import { activityEffectLabels, getAreaDetails, interferenceLabels, patternLabels, type PainEntry } from '../../shared/data/painEntry';
 
 type Props = {
   entry: PainEntry;
@@ -52,9 +52,17 @@ export function EntryDetailDialog({
         </section>
 
         <DetailGroup label="Overall sensations" value={entry.sensations?.join(', ')} />
-        <DetailGroup label="Activity or possible trigger" value={entry.context?.activities?.join(', ')} />
+        <DetailGroup label="Activity or possible trigger" value={entry.context?.activities?.map((activity) => {
+          const effect = entry.context?.activityEffects?.[activity];
+          return effect ? `${activity} (you marked: ${activityEffectLabels[effect]})` : activity;
+        }).join(', ')} />
+        <DetailGroup label="Got in the way" value={entry.context?.interference && [
+          interferenceLabels[entry.context.interference],
+          entry.context.interferenceAreas?.join(', ')
+        ].filter(Boolean).join(' — ')} />
+        <DetailGroup label="Steady or comes and goes" value={entry.areaPatterns?.map((item) => `${findBodyRegion(item.regionId)?.label ?? 'Saved body area'}: ${patternLabels[item.pattern].toLowerCase()}`).join('; ')} />
         <div className="entry-context-grid">
-          <DetailGroup label="Sleep" value={entry.context?.sleep} />
+          <DetailGroup label="Sleep" value={[entry.context?.sleep, entry.context?.painWokeMe ? 'pain woke me' : undefined].filter(Boolean).join('; ')} />
           <DetailGroup label="Stress" value={entry.context?.stress} />
           <DetailGroup label="Mood" value={entry.context?.mood} />
           <DetailGroup label="Cycle" value={entry.context?.cycle} />

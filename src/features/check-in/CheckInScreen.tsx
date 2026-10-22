@@ -1,19 +1,29 @@
-import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
+import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { BodyMap } from '../body-map/BodyMap';
 import { canUsePrecisionArea } from '../body-map/precisionAreas';
 import { AreaDetails } from '../entries/AreaDetails';
 import { OptionalContext } from '../entries/OptionalContext';
+import type { PainEntry } from '../../shared/data/painEntry';
+import { patternPrefill } from './patternPrefill';
 import type { EntryDraft } from './useEntryDraft';
+
+/** Pre-fill only for new and repeated check-ins; an edit shows what that entry saved. */
+export function draftPatternPrefill(draft: EntryDraft, entries: PainEntry[]) {
+  if (draft.mode === 'edit' || !draft.occurredAt) return {};
+  return patternPrefill(entries, draft.regions, new Date(draft.occurredAt).toISOString());
+}
 
 type Props = {
   draft: EntryDraft;
   setDraft: Dispatch<SetStateAction<EntryDraft>>;
   saveState: 'idle' | 'saving' | 'saved' | 'error';
+  entries?: PainEntry[];
   onCancel: () => void;
   onSave: () => void;
 };
 
-export function CheckInScreen({ draft, setDraft, saveState, onCancel, onSave }: Props) {
+export function CheckInScreen({ draft, setDraft, saveState, entries = [], onCancel, onSave }: Props) {
+  const prefill = useMemo(() => draftPatternPrefill(draft, entries), [draft, entries]);
   const coreSaveRef = useRef<HTMLButtonElement>(null);
   const [coreSaveVisible, setCoreSaveVisible] = useState(true);
   const [optionalSections, setOptionalSections] = useState({ context: false, areas: false });
@@ -133,7 +143,13 @@ export function CheckInScreen({ draft, setDraft, saveState, onCancel, onSave }: 
       <div className="optional-enrichment" aria-label="Optional check-in details">
         <OptionalContext
           value={draft.context}
-          onOpenChange={(context) => setOptionalSections((current) => ({ ...current, context }))}
+          regions={draft.regions}
+          patternPrefill={prefill}
+          occurredAt={draft.occurredAt}
+          onOpenChange={(context) => {
+            setOptionalSections((current) => ({ ...current, context }));
+            if (context) setDraft((current) => current.contextOpened ? current : { ...current, contextOpened: true });
+          }}
           onChange={(update) => setDraft((current) => ({
             ...current,
             context: typeof update === 'function' ? update(current.context) : update

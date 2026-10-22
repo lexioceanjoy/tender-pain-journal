@@ -72,4 +72,17 @@ describe('exportFilename', () => {
     expect(exportFilename('json')).toBe('tender-export-2026-07-20.json');
     expect(exportFilename('csv')).toBe('tender-export-2026-07-20.csv');
   });
+
+  it('exports the check-in-gaps fields as their own columns', () => {
+    const entry = createPainEntry({
+      regions: ['choir-b18'], intensity: 6, activities: ['Long sitting'], interference: 'a-lot',
+      interferenceAreas: ['work', 'chores'], activityEffects: { 'Long sitting': 'worse' },
+      areaPatterns: [{ regionId: 'choir-b18', pattern: 'comes-and-goes' }], painWokeMe: true
+    });
+    const [header, row] = buildExportCsv([entry]).split('\r\n');
+    const columns = header.split(',');
+    const values = Object.fromEntries(columns.map((column, index) => [column, row.split(',')[index]]));
+    expect(values).toMatchObject({ interference: 'a-lot', interferenceAreas: 'work; chores', activityEffects: 'Long sitting: worse', painWokeMe: 'true' });
+    expect(values.areaPatterns).toMatch(/: comes-and-goes$/);
+  });
 });
