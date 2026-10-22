@@ -8,7 +8,7 @@ Tender is a phone-first, local-first pain journal for people with long-running p
   <img src="docs/screenshots/today.png" width="200" alt="Today: start a new check-in or repeat the last one">
   <img src="docs/screenshots/check-in.png" width="200" alt="Check-in: tap where it hurts on the CHOIR body map">
   <img src="docs/screenshots/add-context.png" width="200" alt="Optional context: activity markers and whether pain got in the way">
-  <img src="docs/screenshots/insights.png" width="200" alt="Insights: most recorded locations, recorded since, new in this period">
+  <img src="docs/screenshots/insights.png" width="200" alt="Insights: most recorded locations with when recording started, and refined locations">
 </p>
 
 ## A 90-second demo
@@ -32,7 +32,7 @@ Each one is recorded in [`docs/decisions/`](docs/decisions/).
 - **A visual body map, not anatomy names** ([ADR 0005](docs/decisions/0005-validated-body-map-foundation.md), [ADR 0006](docs/decisions/0006-tender-precision-layer.md)). It uses the validated 74-region CHOIR Body Map, plus an optional detail layer for SI-joint, hip, and glute areas.
 - **Non-diagnostic.** Tender never diagnoses, triages, recommends treatment, or claims a cause. Insights describe co-occurrence ("recorded alongside"), and the person's own markers are labeled as theirs. Urgent-symptom guidance is always one tap away.
 - **Consent-gated AI** ([ADR 0008](docs/decisions/0008-consent-gated-ai-narrative.md)). Nothing leaves the device until the person reads what will be sent and ticks a box for that one request. Insights and the appointment summary work fully without AI.
-- **Payload minimization** ([ADR 0010](docs/decisions/0010-narrative-findings-payload.md)). The AI provider never sees diary records. Tender's server computes findings (trend, associations with counts, outliers, first-recorded labels, gaps, treatments, and notes with their dates) and sends only those. Times of day, record IDs, doses, per-area details, and the newer check-in fields are never sent. Fewer than 3 check-ins, or identical ones, get a fixed message with no AI call. The consent copy is generated from the same field lists the code sends, and a test fails if they drift apart.
+- **Payload minimization** ([ADR 0010](docs/decisions/0010-narrative-findings-payload.md)). The AI provider never sees diary records. Tender's server computes findings (trend, associations with counts, outliers, first-recorded labels and those first recorded on the same day, sensations that differ by body side, gaps, treatments with the sensations recorded alongside them, and notes with their dates) and sends only those. Times of day, record IDs, doses, per-area details, and the newer check-in fields are never sent. Fewer than 3 check-ins, or identical ones, get a fixed message with no AI call. The consent copy is generated from the same field lists the code sends, and a test fails if they drift apart.
 
 ## The AI narrative evaluation
 
@@ -52,7 +52,7 @@ The narrative had to earn its place, so before any change shipped it was measure
 Scores compare matched fixtures only: 11 for usefulness and coverage, 10 for the rest.
 
 - **The coverage exception.** The rule allowed coverage to fall by at most 0.3. It fell by 0.36, mostly because the model now points out what stands out instead of restating every check-in, and because associations need at least 3 supporting check-ins. The product owner shipped anyway, with a dated, recorded exception: usefulness and readability rose, faithfulness held, and every hard check passed. Live AI also stays behind a demo access code.
-- **v3 (this iteration)** adds findings aimed at what the coverage review found missing: which sensations were recorded with each medication (once it is logged on 3 or more check-ins), labels first recorded on the same day, and sensations that differ by body side. It also adds an optional "Questions this record raises" section (at most 2 questions, only about gaps in the data). v3 passed 39 of 39 hard checks. Its first run flagged one failure, which turned out to be a checker bug (a date read as a rating); the checker was fixed and the run repeated. v3 has not been rescored by hand.
+- **v3** adds findings aimed at what the coverage review found missing: which sensations were recorded with each medication (once it is logged on 3 or more check-ins), labels first recorded on the same day, and sensations that differ by body side. It also adds an optional "Questions this record raises" section (at most 2 questions, only about gaps in the data). v3 passed 39 of 39 hard checks. Its first run flagged one failure, which turned out to be a checker bug (a date read as a rating); the checker was fixed and the run repeated. v3 has not been rescored by hand.
 
 The full method, results, and decisions are in [`docs/plans/narrative-eval.md`](docs/plans/narrative-eval.md) and [`docs/plans/narrative-v2.md`](docs/plans/narrative-v2.md). The harness is `npm run eval:narrative`.
 
