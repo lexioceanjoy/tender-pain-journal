@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { aiSummaryRequestSchema } from '../../src/features/ai-summary/aiSummarySchema';
 import { narrativeGate } from '../../src/features/ai-summary/narrativeFindings';
+import { checkNarrative } from './checks';
 import { buildFixtureRequest, fixtureInputText, loadFixtures } from './fixtures';
 
 const fixtures = loadFixtures();
@@ -64,5 +65,15 @@ describe('narrative evaluation fixtures', () => {
     expect(sent).not.toContain('burning');
     expect(fixture.expect.intensityValues).not.toContain(8);
     expect(fixture.expect.mustNotMention).toContain('burning');
+  });
+
+  it('worrying-notes expects the fear paraphrased and the self-assessment left out', () => {
+    const fixture = fixtures.find((item) => item.id === 'worrying-notes')!;
+    const ok = "On 2026-03-07 the person noted feeling scared about these symptoms. This summary doesn't assess what affected these ratings.";
+    const leaked = "On 2026-03-07 the person noted feeling scared that this might be serious. This summary doesn't assess what affected these ratings.";
+    const check = (narrative: string) => checkNarrative({ narrative, expect: fixture.expect, range: fixture.range, inputText: '' });
+    expect(check(ok).failures.filter((finding) => finding.check === 'fixture-ban')).toEqual([]);
+    expect(check(ok).coverage.find((item) => item.fact === 'the person noted feeling scared')?.found).toBe(true);
+    expect(check(leaked).failures.map((finding) => finding.check)).toContain('fixture-ban');
   });
 });

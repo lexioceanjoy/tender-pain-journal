@@ -416,9 +416,9 @@ export function checkTerms(narrative: string, terms: string[], check: 'canary' |
 // point the reviewer at a likely problem; none fails a narrative alone.
 // ---------------------------------------------------------------------------
 
-// v2.1 (2026-10-21): ~55–100-word narratives scored well on usefulness, so the
-// target is 60–150 and only running over it is flagged.
-export const WORD_TARGET = { min: 60, max: 150 };
+// v2.1 (2026-10-21): ~55–100-word narratives scored well on usefulness.
+// 2026-10-22: the target is at most 150 words, with no floor.
+export const WORD_TARGET = { max: 150 };
 export const ENTRY_LISTING_MAX_DATES = 4;
 export const ENTRY_LISTING_MAX_RATED_DATES = 3;
 
@@ -501,7 +501,7 @@ export function checkLimitsCount(narrative: string): Finding[] {
 export function checkWordTarget(narrative: string): Finding[] {
   const words = countWords(narrative);
   return words > WORD_TARGET.max
-    ? [{ check: 'word-target', tier: 'flag', detail: `${words} words; the target is ${WORD_TARGET.min}–${WORD_TARGET.max}.`, excerpt: '' }]
+    ? [{ check: 'word-target', tier: 'flag', detail: `${words} words; the target is at most ${WORD_TARGET.max}.`, excerpt: '' }]
     : [];
 }
 

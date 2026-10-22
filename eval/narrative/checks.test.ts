@@ -253,10 +253,10 @@ describe('narrative v2 reviewer flags', () => {
     expect(checkLimitsCount("The sample is small. This summary doesn't assess what affected these ratings.")[0].detail).toBe('2 limits sentences; expected exactly 1.');
   });
 
-  it('flags only a word count over the 60–150 target', () => {
-    expect(checkWordTarget(words(30))).toEqual([]);
+  it('flags only a word count over the 150-word target', () => {
+    expect(checkWordTarget(words(10))).toEqual([]);
     expect(checkWordTarget(words(150))).toEqual([]);
-    expect(checkWordTarget(words(151))[0]).toMatchObject({ check: 'word-target', tier: 'flag', detail: '151 words; the target is 60–150.' });
+    expect(checkWordTarget(words(151))[0]).toMatchObject({ check: 'word-target', tier: 'flag', detail: '151 words; the target is at most 150.' });
   });
 
   it('does not count dates that are in the findings as listed entries', () => {

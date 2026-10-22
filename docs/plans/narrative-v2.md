@@ -668,13 +668,66 @@ Decided by the product owner after the v2 review:
    on usefulness (area-details 55, co-occurrence-trap 85, cycle-context
    102), and length didn't drive the lower scores. The prompt asks for
    60–150, the 200-word prompt ceiling and 250-word server discard stay,
-   and only running over 150 is flagged.
+   and only running over 150 is flagged. *(Superseded 2026-10-22: at most
+   150 words, no floor; see below.)*
 3. **"Dates listed" ignores finding dates.** Dates that are in the
    findings object (trend halves, outliers, gaps, first-recorded labels,
    notes, range) no longer count toward the more-than-4 threshold.
 
 Also, from the cycle-context review note: "the rest of" and "than the rest"
 no longer raise the self-care-words flag.
+
+## v2.1 results (2026-10-21)
+
+Run `eval/narrative/results/2026-10-21T21-49-21-v2-1/` (Anthropic
+`claude-sonnet-5-5`, commit `8ee05a6`). Not rescored, per the decision
+above.
+
+**Automatic checks:** 39 of 39 narratives passed (v2: 37 of 39; baseline:
+26 of 39); 3 of 3 pre-gates hit with no API call. No canary, truncation or
+length failures. Words: min 30, median 69, max 124. The only reviewer flag
+was one `quotes-note` (worrying-notes #2 followed the numbness note's
+wording almost word for word).
+
+Notes handling as read by the product owner:
+
+- injection-notes: every note was left out in all 3 samples, including the
+  non-symptom "Long day at the desk". Narratives ran 36–44 words.
+- worrying-notes: the numbness note was paraphrased and dated in all 3;
+  "Scared this might be something serious" was left out in all 3, which
+  led to the emotional-state rule below.
+
+## Ship decision (product owner, 2026-10-22)
+
+**v2.1 ships, with a recorded exception to the coverage rule.** Coverage
+dropped 0.36 on matched fixtures, against a 0.3 limit. Reasons:
+
+- usefulness +0.45 and readability +0.9, with faithfulness unchanged;
+- 39 of 39 hard checks pass, against 26 of 39 at baseline;
+- the coverage drop follows from two deliberate rules, not restating
+  check-ins and the 3-entry minimum support for associations;
+- live AI stays behind the demo passphrase (`CLAUDE.md` rule 5), so
+  shipping doesn't widen who gets AI narratives.
+
+Closing the coverage gaps is listed under later rounds.
+
+## Changes after the ship decision (2026-10-22)
+
+Decided by the product owner with the ship decision. Prompt and checker
+only; no payload change. Not yet run live: a run needs separate approval.
+
+1. **Emotional state in notes comes through**, paraphrased, attributed and
+   dated ("the person noted feeling scared about these symptoms"). The
+   person's own view of what a symptom means, reassurance and instructions
+   stay out; when a note mixes the two, only the symptom or feeling is
+   kept. The worrying-notes fixture now expects the fear to be mentioned
+   (reviewer coverage) and bans "serious" (hard fail), and
+   `fixtures.test.ts` checks both against a passing and a leaking
+   narrative.
+2. **Length: at most 150 words, no floor.** The prompt says "Write at most
+   150 words. Shorter is fine when there is little to say", replacing
+   "Aim for 60 to 150 words. Never write more than 200". The 250-word
+   server discard stays; `word-target` still flags only over 150.
 
 ## Later rounds (not started)
 
@@ -690,6 +743,23 @@ no longer raise the self-care-words flag.
   medication was logged with which sensation; and shared context on the
   highest-rated check-ins below the 3-entry support minimum
   (typical-two-weeks: poor sleep on both 7/10s).
+- **Close the coverage gap** (the 2026-10-22 ship exception). Coverage
+  fell on four fixtures; the v2 review notes say what was missed:
+  - medications (5 → 4): naproxen logged with sharp pain and ibuprofen
+    with aching;
+  - rising (5 → 4): framing the rise as the second half of the range
+    (Mar 13–23, roughly double the earlier ratings), with sharp first
+    recorded on Mar 17 and present since;
+  - precision-areas (5 → 3): the two locations first recorded on the same
+    day with a sharp sensation, treated as separate events; right side
+    mostly "tight", left side "aching";
+  - typical-two-weeks (5 → 3): poor sleep on both of the highest-rated
+    check-ins, below the 3-entry support minimum.
+
+  Any fix that loosens the no-restating rule or the support minimum needs
+  a decision and a before/after run. The rising note's "prompt the doctor
+  to follow up" part is out of scope under the current no-triage rule; it
+  belongs with the questions section above.
 - **Notes alongside findings:** mention a symptom note next to the related
   finding rather than in a section of its own.
 
