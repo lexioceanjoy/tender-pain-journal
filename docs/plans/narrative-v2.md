@@ -751,6 +751,36 @@ numbness note's wording: "both legs went numb for about an hour").
 
 v2.2 is the prompt that ships under the 2026-10-22 decision.
 
+## v3: coverage findings (2026-10-22, `feat/iteration-c`)
+
+Approved by the product owner as iteration C item 2. Three findings,
+computed on Tender's server from fields already sent; the 3-entry
+minimum and the no-restating rule are unchanged.
+
+- **`treatments[].sensationsOnSameCheckIns`**: the sensations recorded on
+  the check-ins where each medication was logged, with counts (top 3).
+  Descriptive only: it compares no ratings, so it is not an association
+  and medications are still never association factors. It is listed for
+  every logged treatment, as treatments already are (naproxen is on 2
+  check-ins in the medications fixture). The prompt forbids saying a
+  treatment was taken for, or worked on, a sensation.
+- **`firstRecordedTogether`**: locations and sensations first recorded
+  in range on the same date, when there are 2 or more, so the narrative
+  reports them in one sentence (precision-areas: Right lower back,
+  Tailbone area and sharp on 2026-03-07).
+- **`sensationsBySide`**: on check-ins recording left-side and
+  right-side locations, the most frequent sensation per side. Present
+  only when each side has at least 3 check-ins (`SIDE_MIN_ENTRIES`, the
+  association support minimum), the top sensation is on at least half of
+  that side's check-ins with no tie, and the two sides differ
+  (precision-areas: left aching 3 of 4, right tight 2 of 3). Sensations
+  are recorded per check-in, so a check-in recording both sides counts
+  for both.
+
+Not addressed, by decision: typical-two-weeks' poor sleep on both 7/10s
+stays below the 3-entry minimum, and rising's second-half framing is
+already the trend finding.
+
 ## Later rounds (not started)
 
 - **Optional "questions this record raises" section**, limited to gaps or
@@ -759,13 +789,14 @@ v2.2 is the prompt that ships under the 2026-10-22 decision.
   Needs a `CLAUDE.md` rule change first, since the current no-triage rule
   and the eval's clinical-attention check would fail it.
 - **Insight the findings don't yet surface** (from the v2 review):
-  sub-period trends and activity patterns in long dense ranges;
-  sensation by side (precision-areas: right "tight", left "aching");
-  linking first-recorded labels that started on the same day; which
-  medication was logged with which sensation; and shared context on the
-  highest-rated check-ins below the 3-entry support minimum
-  (typical-two-weeks: poor sleep on both 7/10s).
-- **Close the coverage gap** (the 2026-10-22 ship exception). Coverage
+  sub-period trends and activity patterns in long dense ranges; and
+  shared context on the highest-rated check-ins below the 3-entry
+  support minimum (typical-two-weeks: poor sleep on both 7/10s). Sensation
+  by side, same-day first-recorded labels and medication-with-sensation
+  were added in v3 (above).
+- **Close the coverage gap** (the 2026-10-22 ship exception). *Medications
+  and precision-areas addressed in v3; typical-two-weeks left by decision.*
+  Coverage
   fell on four fixtures; the v2 review notes say what was missed:
   - medications (5 → 4): naproxen logged with sharp pain and ibuprofen
     with aching;

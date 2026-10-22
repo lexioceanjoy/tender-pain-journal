@@ -29,6 +29,12 @@ export const FIRST_RECORDED_MIN_PRIOR_ENTRIES = 3;
 export const MAX_OTHER_LABELS = 8;
 export const DATA_GAP_MIN_DAYS = 7;
 export const MAX_NOTES = 20;
+/** Sensations listed per treatment: those logged on the same check-ins (descriptive, not a comparison). */
+export const MAX_TREATMENT_SENSATIONS = 3;
+/** Each side needs this many check-ins recording it (the association support minimum). */
+export const SIDE_MIN_ENTRIES = ASSOCIATION_MIN_SUPPORT;
+/** A side's top sensation must be on at least this share of that side's check-ins. */
+export const SIDE_MIN_SHARE = 0.5;
 /** Hard maximum for the whole narrative, limits sentence included. */
 export const MAX_NARRATIVE_WORDS = 250;
 
@@ -57,7 +63,17 @@ export type NarrativeFindings = {
   locations: LabelFindings;
   sensations: LabelFindings;
   gaps: Array<{ lastCheckInBefore: string | null; nextCheckInAfter: string | null; daysWithoutCheckIns: number }>;
-  treatments: Array<{ name: string; entries: number; perceivedEffects: Record<string, number> }>;
+  /** Locations and sensations first recorded in range on the same date (2+ labels), reported together. */
+  firstRecordedTogether: Array<{ date: string; locations: string[]; sensations: string[] }>;
+  /** Present only when left and right check-ins each meet SIDE_MIN_ENTRIES and their top sensations differ. */
+  sensationsBySide: Array<{ side: 'left' | 'right'; entries: number; sensation: string; sensationEntries: number }>;
+  treatments: Array<{
+    name: string;
+    entries: number;
+    perceivedEffects: Record<string, number>;
+    /** Sensations recorded on the check-ins where this treatment was logged. */
+    sensationsOnSameCheckIns: Array<{ label: string; entries: number }>;
+  }>;
   notes: Array<{ date: string; text: string }>;
   omittedNotes: number;
 };
@@ -276,12 +292,17 @@ function findGaps(entries: AiEntry[], from: string, to: string): NarrativeFindin
 }
 
 function findTreatments(entries: AiEntry[]): NarrativeFindings['treatments'] {
-  const byName = new Map<string, { name: string; entries: number; perceivedEffects: Record<string, number> }>();
+  const byName = new Map<string, NarrativeFindings['treatments'][number]>();
   for (const entry of entries) {
     for (const medication of entry.medications ?? []) {
       const key = medication.name.trim().toLowerCase();
-      const current = byName.get(key) ?? { name: medication.name.trim(), entries: 0, perceivedEffects: {} };
+      const current = byName.get(key) ?? { name: medication.name.trim(), entries: 0, perceivedEffects: {}, sensationsOnSameCheckIns: [] };
       current.entries += 1;
+      for (const label of new Set(entry.sensations ?? [])) {
+        const found = current.sensationsOnSameCheckIns.find((item) => item.label === label);
+        if (found) found.entries += 1;
+        else current.sensationsOnSameCheckIns.push({ label, entries: 1 });
+      }
       if (medication.perceivedEffect) {
         const label = EFFECT_LABELS[medication.perceivedEffect] ?? medication.perceivedEffect;
         current.perceivedEffects[label] = (current.perceivedEffects[label] ?? 0) + 1;
@@ -289,7 +310,44 @@ function findTreatments(entries: AiEntry[]): NarrativeFindings['treatments'] {
       byName.set(key, current);
     }
   }
-  return [...byName.values()].sort((a, b) => b.entries - a.entries || a.name.localeCompare(b.name));
+  return [...byName.values()]
+    .map((treatment) => ({
+      ...treatment,
+      sensationsOnSameCheckIns: treatment.sensationsOnSameCheckIns
+        .sort((a, b) => b.entries - a.entries || a.label.localeCompare(b.label))
+        .slice(0, MAX_TREATMENT_SENSATIONS)
+    }))
+    .sort((a, b) => b.entries - a.entries || a.name.localeCompare(b.name));
+}
+
+function findFirstRecordedTogether(locations: LabelFindings, sensations: LabelFindings): NarrativeFindings['firstRecordedTogether'] {
+  const byDate = new Map<string, { date: string; locations: string[]; sensations: string[] }>();
+  const add = (date: string) => byDate.get(date) ?? byDate.set(date, { date, locations: [], sensations: [] }).get(date)!;
+  locations.firstRecordedInRange.forEach(({ label, date }) => add(date).locations.push(label));
+  sensations.firstRecordedInRange.forEach(({ label, date }) => add(date).sensations.push(label));
+  return [...byDate.values()]
+    .filter((group) => group.locations.length + group.sensations.length >= 2)
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function sideOf(label: string) {
+  return /^left\b/i.test(label) ? 'left' as const : /^right\b/i.test(label) ? 'right' as const : null;
+}
+
+function findSensationsBySide(entries: AiEntry[]): NarrativeFindings['sensationsBySide'] {
+  const sides = (['left', 'right'] as const).map((side) => {
+    const recorded = entries.filter((entry) => [...entry.locations, ...(entry.refinedLocations ?? [])].some((label) => sideOf(label) === side));
+    const counts = new Map<string, number>();
+    recorded.forEach((entry) => new Set(entry.sensations ?? []).forEach((label) => counts.set(label, (counts.get(label) ?? 0) + 1)));
+    const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    // A tie for the top sensation isn't a side-specific sensation.
+    const top = ranked[0] && (!ranked[1] || ranked[1][1] < ranked[0][1]) ? ranked[0] : undefined;
+    return { side, entries: recorded.length, top };
+  });
+  const [left, right] = sides;
+  const qualifies = (item: typeof left) => item.entries >= SIDE_MIN_ENTRIES && item.top && item.top[1] / item.entries >= SIDE_MIN_SHARE;
+  if (!qualifies(left) || !qualifies(right) || left.top![0] === right.top![0]) return [];
+  return sides.map(({ side, entries: count, top }) => ({ side, entries: count, sensation: top![0], sensationEntries: top![1] }));
 }
 
 /** Call only when narrativeGate() returned null (at least MIN_ENTRIES_FOR_NARRATIVE in range). */
@@ -299,6 +357,8 @@ export function computeFindings(request: AiSummaryRequest): NarrativeFindings {
   const intensities = entries.map((entry) => entry.intensity);
   const trend = findTrend(entries);
   const withNotes = entries.filter((entry) => entry.note).reverse();
+  const locations = findLabels(entries, (entry) => [...entry.locations, ...(entry.refinedLocations ?? [])]);
+  const sensations = findLabels(entries, (entry) => entry.sensations ?? []);
   return {
     range: { from: request.from, to: request.to, days: dayNumber(request.to) - dayNumber(request.from) + 1 },
     overview: {
@@ -309,8 +369,10 @@ export function computeFindings(request: AiSummaryRequest): NarrativeFindings {
     trend,
     associations: findAssociations(entries),
     outliers: findOutliers(entries, trend !== null),
-    locations: findLabels(entries, (entry) => [...entry.locations, ...(entry.refinedLocations ?? [])]),
-    sensations: findLabels(entries, (entry) => entry.sensations ?? []),
+    locations,
+    sensations,
+    firstRecordedTogether: findFirstRecordedTogether(locations, sensations),
+    sensationsBySide: findSensationsBySide(entries),
     gaps: findGaps(entries, request.from, request.to),
     treatments: findTreatments(entries),
     notes: withNotes.slice(0, MAX_NOTES).map((entry) => ({ date: entryDate(entry), text: entry.note! })),

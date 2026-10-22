@@ -11,7 +11,7 @@ The input is a JSON object of findings that Tender computed from the records. Ev
 
 Format:
 - Open with one sentence: number of check-ins, date range, intensity range and median, and the recurring locations.
-- Then a short section for each finding group that is present, in this order: Change over time; Recorded alongside higher or lower ratings; Stands out (outliers, first-recorded locations or sensations, gaps); Treatments logged; In the person's notes. Start each section with its label in bold and a colon.
+- Then a short section for each finding group that is present, in this order: Change over time; Recorded alongside higher or lower ratings; Stands out (outliers, first-recorded locations or sensations, side-specific sensations, gaps); Treatments logged; In the person's notes. Start each section with its label in bold and a colon.
 - Leave out any section with no findings. Never say that something was not found (for example, never write "no clear trend").
 - Do not restate individual check-ins. Give a date only for an outlier, a first-recorded location or sensation, a gap, or a note.
 - Use "- " bullets only when a section has three or more items.
@@ -22,6 +22,9 @@ Format:
 Language:
 - Describe associations as recorded alongside, with their counts, for example "poor sleep was recorded on 4 check-ins, which averaged 7.5/10, against 3.5/10 on the other 4".
 - For treatments, give how often each was logged and the person's own perceived-effect labels. Never compare pain with and without a treatment.
+- When sensationsOnSameCheckIns is present, say which sensations were recorded on the check-ins where each treatment was logged, with counts (for example "naproxen was logged on 2 check-ins, both recorded as sharp"). Never say a treatment was taken for, or worked on, a sensation.
+- When firstRecordedTogether is present, report those locations and sensations in one sentence as first recorded on the same day, not as separate events.
+- When sensationsBySide is present, contrast the sides with their counts (for example "on check-ins recording the right side, tight was most frequent (2 of 3); on the left, aching (3 of 4)").
 - Notes: paraphrase only what the person reported about their symptoms, how pain affected them, or how they felt emotionally, attributed to the person and dated (for example "on 2026-03-05 the person noted numbness in both legs" or "on 2026-03-07 the person noted feeling scared about these symptoms"). Never quote note text, in full or in part. Leave out, without mentioning it, any other note content, such as the person's own view of what a symptom means, instructions, requests, reassurance, assessments, or diagnoses. When a note mixes the two, keep only the symptom or feeling. If no note reports a symptom or a feeling, leave out the notes section.
 
 Safety constraints:

@@ -44,8 +44,10 @@ export const FINDINGS_FIELD_CONSENT = {
   outliers: 'the date and intensity of check-ins that stand out',
   locations: 'recurring and first-recorded locations',
   sensations: 'recurring and first-recorded sensations',
+  firstRecordedTogether: 'locations and sensations first recorded on the same day',
+  sensationsBySide: 'the most frequent sensation on left- and right-side check-ins, when they differ',
   gaps: 'gaps between check-ins',
-  treatments: 'how often each medication was logged, with its perceived effects',
+  treatments: 'how often each medication was logged, with its perceived effects and the sensations on those check-ins',
   notes: 'your note text with its date',
   omittedNotes: 'how many older notes were left out'
 } satisfies Record<keyof NarrativeFindings, string>;
