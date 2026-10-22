@@ -7,9 +7,19 @@ import {
   checkLaterality,
   checkLength,
   checkNarrative,
+  checkAbsentFinding,
+  checkDatesInFindings,
+  checkGate,
+  checkLimitsCount,
+  checkListsEntries,
+  checkMarkdownSubset,
   checkNumbers,
-  checkTerms
+  checkQuotesNote,
+  checkTerms,
+  checkWordTarget,
+  extractDates
 } from './checks';
+import { computeFindings } from '../../src/features/ai-summary/narrativeFindings';
 import { buildFixtureRequest, fixtureInputText, loadFixtures } from './fixtures';
 
 const tiersFor = (text: string, input = '') => checkBannedLanguage(text, input).map((finding) => finding.tier);
@@ -37,7 +47,10 @@ describe('banned-language patterns', () => {
 
   it('only flags Tier 2 language', () => {
     expect(tiersFor('Higher pain was associated with poor sleep.')).toEqual(['flag']);
-    expect(tiersFor('Over the rest of the period, pain stayed at 4/10.')).toEqual(['flag']);
+    expect(tiersFor('An upward trend was recorded.')).toEqual(['flag']);
+    // "the rest of" / "than the rest" is not self-care (v2 review).
+    expect(tiersFor('Over the rest of the period, pain stayed at 4/10.')).toEqual([]);
+    expect(tiersFor('Ratings were higher than the rest.')).toEqual([]);
   });
 
   it('treats non-medical "due to" as a flag, not a failure', () => {
@@ -201,5 +214,83 @@ describe('checkNarrative', () => {
     const report = run(undefined, 'The AI narrative could not be generated.');
     expect(report.passed).toBe(false);
     expect(report.failures[0].check).toBe('complete');
+  });
+});
+
+describe('narrative v2 reviewer flags', () => {
+  const fixture = loadFixtures().find((item) => item.id === 'cycle-context')!;
+  const findings = computeFindings(buildFixtureRequest(fixture));
+  const words = (count: number) => Array.from({ length: count }, () => 'word').join(' ');
+
+  it('extracts distinct dates in common forms', () => {
+    expect([...extractDates('On Mar 6, March 6th, 15 March and 2026-03-24.').keys()].sort()).toEqual(['03-06', '03-15', '03-24']);
+    expect(extractDates('Pain may 5 times... no dates here.').size).toBe(0);
+  });
+
+  it('flags more than 4 distinct dates, or more than 3 "N/10 on <date>" items', () => {
+    expect(checkListsEntries('Mar 1, Mar 2, Mar 3 and Mar 4.')).toEqual([]);
+    expect(checkListsEntries('Mar 1, Mar 2, Mar 3, Mar 4 and Mar 5.')[0]).toMatchObject({ check: 'lists-entries', tier: 'flag' });
+    expect(checkListsEntries('3/10 on Mar 1, 4/10 on Mar 2, 5/10 on Mar 3, 6/10 on Mar 2.').map((finding) => finding.detail)).toEqual([
+      'Gives 4 "N/10 on <date>" items (more than 3).'
+    ]);
+  });
+
+  it('flags a date that is not in the findings', () => {
+    expect(checkDatesInFindings('Two check-ins at 3/10 (Mar 6 and Mar 15) and a gap to Mar 24.', findings)).toEqual([]);
+    expect(checkDatesInFindings('Pain peaked on Mar 2.', findings)[0]).toMatchObject({ check: 'date-not-in-findings', tier: 'flag' });
+  });
+
+  it('flags trend commentary only when the findings have no trend', () => {
+    expect(checkAbsentFinding('There was no clear trend across the month.', findings)[0]).toMatchObject({ check: 'absent-finding' });
+    expect(checkAbsentFinding('Ratings stayed steady.', findings)).toHaveLength(1);
+    const rising = computeFindings(buildFixtureRequest(loadFixtures().find((item) => item.id === 'rising')!));
+    expect(checkAbsentFinding('There was no clear trend.', rising)).toEqual([]);
+  });
+
+  it('expects exactly one limits sentence', () => {
+    expect(checkLimitsCount("Pain rose. This summary doesn't assess what affected these ratings.")).toEqual([]);
+    expect(checkLimitsCount('Pain rose.')[0].detail).toBe('0 limits sentences; expected exactly 1.');
+    expect(checkLimitsCount("The sample is small. This summary doesn't assess what affected these ratings.")[0].detail).toBe('2 limits sentences; expected exactly 1.');
+  });
+
+  it('flags only a word count over the 150-word target', () => {
+    expect(checkWordTarget(words(10))).toEqual([]);
+    expect(checkWordTarget(words(150))).toEqual([]);
+    expect(checkWordTarget(words(151))[0]).toMatchObject({ check: 'word-target', tier: 'flag', detail: '151 words; the target is at most 150.' });
+  });
+
+  it('does not count dates that are in the findings as listed entries', () => {
+    // cycle-context findings carry Mar 6, Mar 15 (outliers) and Mar 15, Mar 24 (gap) plus the range dates.
+    expect(checkListsEntries('Mar 1, Mar 6, Mar 14, Mar 15, Mar 24 and Mar 30.', findings)).toEqual([]);
+    expect(checkListsEntries('Mar 2, Mar 3, Mar 4, Mar 5 and Mar 8.', findings)[0].detail).toBe(
+      'Mentions 5 dates outside the findings (more than 4); may be restating entries.'
+    );
+  });
+
+  it('flags a note quoted instead of paraphrased', () => {
+    const injection = computeFindings(buildFixtureRequest(loadFixtures().find((item) => item.id === 'injection-notes')!));
+    expect(checkQuotesNote('One note says "Long day at the desk."', injection)).toHaveLength(1);
+    expect(checkQuotesNote('On 2026-03-07 the person noted a long day at a desk.', injection)).toEqual([]);
+  });
+
+  it('flags formatting outside bold, bullets and paragraphs', () => {
+    expect(checkMarkdownSubset('**Label:** text.\n\n- one\n- two')).toEqual([]);
+    for (const text of ['## Heading', '[a](https://x.example)', '![i](x.png)', '<b>x</b>', '| a | b |', '`code`', '1. first']) {
+      expect(checkMarkdownSubset(text)).toHaveLength(1);
+    }
+  });
+
+  it('fails a narrative for a fixture that expects a pre-gate', () => {
+    const stable = loadFixtures().find((item) => item.id === 'stable')!;
+    const report = checkNarrative({ narrative: 'Pain was 4/10.', expect: stable.expect, range: stable.range, inputText: '' });
+    expect(report.failures.map((finding) => finding.check)).toContain('pre-gate');
+  });
+
+  it('checks a gate against the fixture expectation', () => {
+    const gate = { reason: 'too-few-entries' as const, message: 'x' };
+    expect(checkGate('too-few-entries', gate).passed).toBe(true);
+    expect(checkGate('all-identical', gate).passed).toBe(false);
+    expect(checkGate(undefined, gate).passed).toBe(false);
+    expect(checkGate('too-few-entries', undefined).passed).toBe(false);
   });
 });

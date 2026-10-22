@@ -41,6 +41,7 @@
     "sides": [
       "right"
     ],
-    "entryCount": 1
+    "entryCount": 1,
+    "preGate": "too-few-entries"
   }
 }

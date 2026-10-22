@@ -1,0 +1,46 @@
+{
+  "id": "two-entries",
+  "purpose": "Two differing check-ins: one below the pre-gate minimum, so no AI call and the fixed too-few message.",
+  "range": {
+    "from": "2026-03-01",
+    "to": "2026-03-14"
+  },
+  "entries": [
+    {
+      "occurredAt": "2026-03-03T09:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 5,
+      "sensations": [
+        "aching"
+      ]
+    },
+    {
+      "occurredAt": "2026-03-10T09:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 7,
+      "sensations": [
+        "sharp"
+      ],
+      "activities": [
+        "Lifting"
+      ]
+    }
+  ],
+  "expect": {
+    "mustMention": [],
+    "mustNotMention": [],
+    "intensityValues": [
+      5,
+      7
+    ],
+    "sides": [
+      "left"
+    ],
+    "entryCount": 2,
+    "preGate": "too-few-entries"
+  }
+}

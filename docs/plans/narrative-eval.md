@@ -180,7 +180,14 @@ The rubric only matters among outputs that pass every hard check.
 7. **Fixture-specific bans**: nothing from that fixture's
    `expect.mustNotMention`.
 
-### Layer 2: rubric (human, blinded)
+### Layer 2: rubric (human, unblinded)
+
+> **Decision (product owner, 2026-10-21): the blind side-by-side is dropped
+> from the ship criteria.** It isn't blind when the two versions differ
+> obviously, for example in length, so it adds effort without adding
+> information. Rubric scores are unblinded and given by the product owner
+> alone. `--compare` still builds the page if wanted, but no rule depends
+> on it.
 
 Automatic checks run on every sample. Human scoring uses fewer:
 
@@ -323,11 +330,9 @@ advisory only. It never replaces the human score or decides a gate.
 - **No rubric regression.** Faithfulness and usefulness carry equal weight
   and neither average may drop at all. No other dimension's average drops
   by more than 0.3.
-- **Net preference.** In the blinded side-by-side, "after" is preferred on
-  more fixtures than "before". Ties ("no preference" on most fixtures) are
-  acceptable only for changes whose purpose was something other than
-  quality, e.g. a model-id update, and then only if the first two rules
-  hold.
+- ~~**Net preference.** In the blinded side-by-side, "after" is preferred on
+  more fixtures than "before".~~ Dropped 2026-10-21 (see "Layer 2"). The
+  first two rules decide on their own.
 
 ## Banned-language checks
 
@@ -413,6 +418,13 @@ the same contract. It should pass the same Tier 1 check, as an offline unit
 test in `npm run check`.
 
 ## Implementation
+
+> Narrative v2 (`docs/plans/narrative-v2.md`, ADR 0010) adds 3 fixtures (16 in
+> total, 3 of them pre-gated with no API call), runs the harness through
+> the server's `createAiNarrative`, and adds Tier 2 flags for listed
+> entries, dates outside the findings, absent-finding comments, the
+> limits-sentence count, the 120–180 word target, and formatting outside
+> the safe subset.
 
 | Piece | Location | Runs in `npm run check`? |
 | --- | --- | --- |

@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { ZodError } from 'zod';
-import { createAiNarrative } from './aiService.js';
+import { createAiNarrative, NarrativeTooLongError, TOO_LONG_NARRATIVE_MESSAGE } from './aiService.js';
 import { assertProviderRegistryIsConsentReady, resolveProvider } from './providers/index.js';
 import type { AiProvider, ProviderName } from './providers/types.js';
 
@@ -83,12 +83,15 @@ export function createRequestHandler({ provider, apiKey, model }: ActiveProvider
     try {
       const body = await readJson(request);
       const safetyId = String(request.headers['x-tender-safety-id'] ?? '').slice(0, 128) || 'tender-local-user';
-      const narrative = await createAiNarrative(provider, body, safetyId, { apiKey, model });
-      response.writeHead(200).end(JSON.stringify({ narrative }));
+      // { narrative } or, when a pre-gate applies, { gate } with no AI call.
+      const result = await createAiNarrative(provider, body, safetyId, { apiKey, model });
+      response.writeHead(200).end(JSON.stringify(result));
     } catch (error) {
       const clientError = error instanceof SyntaxError || error instanceof ZodError;
       response.writeHead(clientError ? 400 : 502).end(JSON.stringify({
-        error: clientError ? 'The selected diary data was invalid.' : provider.safeError(error)
+        error: clientError
+          ? 'The selected diary data was invalid.'
+          : error instanceof NarrativeTooLongError ? TOO_LONG_NARRATIVE_MESSAGE : provider.safeError(error)
       }));
     }
   };

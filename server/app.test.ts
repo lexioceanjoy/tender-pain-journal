@@ -47,6 +47,14 @@ function fakeProvider(overrides: Partial<AiProvider> = {}): AiProvider {
   };
 }
 
+const threeEntryPayload = {
+  from: '2026-08-01',
+  to: '2026-08-07',
+  entries: [3, 5, 7].map((intensity, index) => ({
+    occurredAt: `2026-08-0${index + 1}T08:00:00.000Z`, intensity, locations: ['Left buttock']
+  }))
+};
+
 describe('loadEnvLocal', () => {
   it('returns an empty object when .env.local does not exist', () => {
     const dir = mkdtempSync(join(tmpdir(), 'tender-env-'));
@@ -145,21 +153,42 @@ describe('createRequestHandler', () => {
     const provider = fakeProvider();
     const handler = createRequestHandler({ provider, apiKey: 'secret-key', model: 'claude-sonnet-5-5' });
     const { response, state } = fakeResponse();
-    const payload = JSON.stringify({
-      from: '2026-08-01',
-      to: '2026-08-07',
-      entries: [{ occurredAt: '2026-08-01T08:00:00.000Z', intensity: 7, locations: ['Left buttock'] }]
-    });
+    const payload = JSON.stringify(threeEntryPayload);
 
     await handler(fakeRequest({ method: 'POST', url: '/api/ai-summary', body: payload }), response);
 
     expect(state.statusCode).toBe(200);
-    expect(JSON.parse(state.body)).toEqual({ narrative: 'A careful summary.' });
+    expect(JSON.parse(state.body)).toEqual({ narrative: "A careful summary.\n\nThis summary doesn't assess what affected these ratings." });
     expect(provider.createNarrative).toHaveBeenCalledWith(
-      expect.objectContaining({ from: '2026-08-01', to: '2026-08-07' }),
+      expect.objectContaining({ range: { from: '2026-08-01', to: '2026-08-07', days: 7 } }),
       'tender-local-user',
       { apiKey: 'secret-key', model: 'claude-sonnet-5-5' }
     );
+  });
+
+  it('returns the pre-gate message with 200 and no provider call when there are too few entries', async () => {
+    const provider = fakeProvider();
+    const handler = createRequestHandler({ provider, apiKey: 'secret-key', model: 'claude-sonnet-5-5' });
+    const { response, state } = fakeResponse();
+    const payload = JSON.stringify({ ...threeEntryPayload, entries: threeEntryPayload.entries.slice(0, 1) });
+
+    await handler(fakeRequest({ method: 'POST', url: '/api/ai-summary', body: payload }), response);
+
+    expect(state.statusCode).toBe(200);
+    expect(JSON.parse(state.body).gate.reason).toBe('too-few-entries');
+    expect(provider.createNarrative).not.toHaveBeenCalled();
+  });
+
+  it('returns 502 with a fixed message, never the text, when the narrative is over 250 words', async () => {
+    const provider = fakeProvider({ createNarrative: vi.fn().mockResolvedValue(`${'secretword '.repeat(260)}end.`) });
+    const handler = createRequestHandler({ provider, apiKey: 'secret-key', model: 'claude-sonnet-5-5' });
+    const { response, state } = fakeResponse();
+
+    await handler(fakeRequest({ method: 'POST', url: '/api/ai-summary', body: JSON.stringify(threeEntryPayload) }), response);
+
+    expect(state.statusCode).toBe(502);
+    expect(JSON.parse(state.body).error).toBe('The AI narrative was longer than its limit and was discarded rather than shown.');
+    expect(state.body).not.toContain('secretword');
   });
 
   it('returns 400 on invalid diary payload without calling the provider', async () => {
@@ -180,11 +209,7 @@ describe('createRequestHandler', () => {
     });
     const handler = createRequestHandler({ provider, apiKey: 'secret-key', model: 'claude-sonnet-5-5' });
     const { response, state } = fakeResponse();
-    const payload = JSON.stringify({
-      from: '2026-08-01',
-      to: '2026-08-07',
-      entries: [{ occurredAt: '2026-08-01T08:00:00.000Z', intensity: 7, locations: ['Left buttock'] }]
-    });
+    const payload = JSON.stringify(threeEntryPayload);
 
     await handler(fakeRequest({ method: 'POST', url: '/api/ai-summary', body: payload }), response);
 

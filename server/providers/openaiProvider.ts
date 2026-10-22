@@ -1,6 +1,15 @@
 import OpenAI from 'openai';
 import type { AiProvider } from './types.js';
-import { AI_SUMMARY_INSTRUCTIONS } from './instructions.js';
+import { AI_SUMMARY_INSTRUCTIONS, narrativeInput, TRUNCATED_NARRATIVE_MESSAGE } from './instructions.js';
+
+// Parity with AnthropicTruncatedResponseError: identified by class, never
+// by message text, and never returned as partial text.
+export class OpenAiTruncatedResponseError extends Error {
+  constructor() {
+    super('The OpenAI response was incomplete.');
+    this.name = 'OpenAiTruncatedResponseError';
+  }
+}
 
 type OpenAiFailure = {
   status?: number;
@@ -15,7 +24,7 @@ export const openaiProvider: AiProvider = {
   privacyNoticeUrl: 'https://developers.openai.com/api/docs/guides/your-data#default-usage-policies-by-endpoint',
   retentionSummary: 'OpenAI retains submitted data for a limited period, which may be longer in specific cases such as content flagged for safety review. See OpenAI’s current data policy, linked below, for exact terms.',
 
-  async createNarrative(payload, safetyId, config) {
+  async createNarrative(findings, safetyId, config) {
     const client = new OpenAI({ apiKey: config.apiKey });
     const response = await client.responses.create({
       model: config.model,
@@ -24,14 +33,18 @@ export const openaiProvider: AiProvider = {
       reasoning: { effort: 'low', context: 'current_turn' },
       text: { verbosity: 'low' },
       instructions: AI_SUMMARY_INSTRUCTIONS,
-      input: `Date range: ${payload.from} to ${payload.to}\nDiary records (JSON):\n${JSON.stringify(payload.entries)}`
+      input: narrativeInput(findings)
     });
+    // An incomplete response (output-token limit or similar) is discarded,
+    // as Anthropic's max_tokens stop is, rather than shown cut off.
+    if (response.status === 'incomplete') throw new OpenAiTruncatedResponseError();
     const narrative = response.output_text.trim();
     if (!narrative) throw new Error('The AI service returned an empty summary.');
     return narrative;
   },
 
   safeError(error) {
+    if (error instanceof OpenAiTruncatedResponseError) return TRUNCATED_NARRATIVE_MESSAGE;
     const failure = error as OpenAiFailure;
     if (failure.code === 'credit_balance_exhausted') {
       return 'OpenAI API credits are required. Add credits in OpenAI billing, then try again.';

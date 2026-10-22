@@ -1,0 +1,67 @@
+{
+  "id": "three-entries",
+  "purpose": "Exactly the pre-gate minimum: the smallest range that gets a narrative. Nothing reaches a threshold, so the narrative should be short and invent no pattern.",
+  "range": {
+    "from": "2026-03-01",
+    "to": "2026-03-14"
+  },
+  "entries": [
+    {
+      "occurredAt": "2026-03-02T09:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 4,
+      "sensations": [
+        "aching"
+      ],
+      "sleep": "okay"
+    },
+    {
+      "occurredAt": "2026-03-06T09:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 6,
+      "sensations": [
+        "aching",
+        "tight"
+      ],
+      "sleep": "poor"
+    },
+    {
+      "occurredAt": "2026-03-11T09:00:00.000Z",
+      "regions": [
+        "choir-b18"
+      ],
+      "intensity": 5,
+      "sensations": [
+        "tight"
+      ],
+      "activities": [
+        "Walking"
+      ]
+    }
+  ],
+  "expect": {
+    "mustMention": [
+      {
+        "fact": "three check-ins",
+        "any": [
+          "3 check-ins",
+          "three check-ins"
+        ]
+      }
+    ],
+    "mustNotMention": [],
+    "intensityValues": [
+      4,
+      5,
+      6
+    ],
+    "sides": [
+      "left"
+    ],
+    "entryCount": 3
+  }
+}

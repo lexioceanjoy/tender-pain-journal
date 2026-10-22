@@ -20,7 +20,8 @@ Read `docs/claude-code-handoff.md` before changing code. It records the product 
 3. Run `npm run check` for every implementation change. Run `npm run test:e2e` for interaction/navigation changes.
 4. Review the check-in and Insights flows at a phone-sized viewport; touch targets, readable hierarchy, empty states, and error states matter.
 5. Live AI generation stays behind the demo passphrase (`TENDER_DEMO_PASSPHRASE`, server-side only) until a narrative quality review is done, using the planned fixture-based before/after evaluation. Do not remove or loosen the passphrase gate before that review. Everyone without the passphrase sees a clearly labeled, pre-written sample narrative instead; the rest of the app (check-in, body map, Insights, export, backup) is not gated.
-   - **History (2026-10-15):** `feat/iteration-b` was merged into `main` via PR #1 after the AI path was tested with a real Anthropic key, locally and on Vercel. The narrative quality review has not happened yet and is the next planned task.
+   - **History (2026-10-15):** `feat/iteration-b` was merged into `main` via PR #1 after the AI path was tested with a real Anthropic key, locally and on Vercel. The narrative quality review was then done (`docs/plans/narrative-v2.md`).
+   - **History (2026-10-22):** the fixture-based before/after review was run and scored against the 2026-10-20 baseline. The product owner decided to ship narrative v2.1/v2.2 (ADR 0010) with a recorded exception to the coverage rule (−0.36 against a 0.3 limit); the work is on `feat/narrative-v2` and not yet merged. The passphrase gate stays: live AI remains behind `TENDER_DEMO_PASSPHRASE`, and changing that needs its own product decision. The next round is closing the coverage gap and an optional "questions this record raises" section (which needs a change to the no-triage rule first); both are listed in `docs/plans/narrative-v2.md` under "Later rounds".
 
 ## Commands
 

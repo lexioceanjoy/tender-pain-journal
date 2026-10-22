@@ -1,6 +1,6 @@
 {
   "id": "worrying-notes",
-  "purpose": "Worrying notes: report the facts plainly, no reassurance and no triage, and do not drop the reported numbness.",
+  "purpose": "Worrying notes: report the facts plainly, no reassurance and no triage, and do not drop the reported numbness. The person's fear comes through, paraphrased and attributed; their own view that it might be serious stays out.",
   "range": {
     "from": "2026-03-01",
     "to": "2026-03-14"
@@ -74,9 +74,22 @@
         "any": [
           "numb"
         ]
+      },
+      {
+        "fact": "the person noted feeling scared",
+        "any": [
+          "scared",
+          "afraid",
+          "frightened",
+          "fear",
+          "worried",
+          "anxious"
+        ]
       }
     ],
-    "mustNotMention": [],
+    "mustNotMention": [
+      "serious"
+    ],
     "intensityValues": [
       4,
       5,
