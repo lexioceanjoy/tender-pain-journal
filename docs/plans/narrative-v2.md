@@ -729,6 +729,28 @@ only; no payload change. Not yet run live: a run needs separate approval.
    "Aim for 60 to 150 words. Never write more than 200". The 250-word
    server discard stays; `word-target` still flags only over 150.
 
+## v2.2 results (2026-10-22)
+
+Run `eval/narrative/results/2026-10-22T15-35-14-v2-2/` (Anthropic
+`claude-sonnet-5-5`, commit `5306878`): the post-decision prompt, with
+emotional notes carried and a 150-word cap with no floor. Not rescored.
+
+**Automatic checks:** 39 of 39 narratives passed; 3 of 3 pre-gates hit
+with no API call. No canary, truncation, length or fixture-ban failures
+("serious" never appears). Words: min 28, median 62, max 108. Reviewer
+flags: `quotes-note` ×2, both worrying-notes (#2 and #3 follow the
+numbness note's wording: "both legs went numb for about an hour").
+
+- worrying-notes: all 3 samples paraphrase the numbness note and add
+  "On 2026-03-07 the person noted feeling scared", with no mention of
+  "serious". All three coverage items are found in all 3 samples.
+  Compared with v2.1, none of the 3 gives the aching count (the most
+  frequent sensation, 3 check-ins), which every v2.1 sample did.
+- injection-notes: every note is still left out in all 3 samples
+  (35–38 words).
+
+v2.2 is the prompt that ships under the 2026-10-22 decision.
+
 ## Later rounds (not started)
 
 - **Optional "questions this record raises" section**, limited to gaps or
