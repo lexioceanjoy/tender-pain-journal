@@ -6,6 +6,7 @@ Read `docs/claude-code-handoff.md` before changing code. It records the product 
 
 - This is a phone-first, local-first pain journal. A basic check-in must remain usable in under 30 seconds; optional details must never be mandatory or in the critical path.
 - Do not turn Tender into a diagnostic, triage, treatment-recommendation, advertising, or analytics product.
+- The AI narrative never says a symptom needs attention, follow-up, or review. The one exception to "no questions" (product-owner decision, 2026-10-22): an optional **"Questions this record raises"** section of at most 2 questions, only about gaps or ambiguities in the recorded data (e.g. "the record doesn't show what preceded the Mar 12 spike"), never about whether a symptom is serious, what it means, or whether it needs attention. The eval fails any question that judges a symptom (`eval/narrative/checks.ts`, `checkQuestions`).
 - Preserve the task-based navigation: Today, History, Insights, More. Do not collapse the experience back into one long screen.
 - Preserve the visual, touchable body-map approach. Do not replace it with anatomy names or text-only selectors. Keep the detailed SI / hip / glute surface locations.
 - Local diary data stays in IndexedDB by default. Do not add accounts, cloud sync, tracking, or network requests with health entries without an explicit product decision.

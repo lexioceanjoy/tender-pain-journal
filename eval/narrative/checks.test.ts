@@ -7,6 +7,8 @@ import {
   checkLaterality,
   checkLength,
   checkNarrative,
+  checkQuestions,
+  extractQuestions,
   checkAbsentFinding,
   checkDatesInFindings,
   checkGate,
@@ -292,5 +294,47 @@ describe('narrative v2 reviewer flags', () => {
     expect(checkGate('all-identical', gate).passed).toBe(false);
     expect(checkGate(undefined, gate).passed).toBe(false);
     expect(checkGate('too-few-entries', undefined).passed).toBe(false);
+  });
+});
+
+describe('questions this record raises', () => {
+  const body = 'Across 6 check-ins from 2026-03-01 to 2026-03-14, intensity ranged from 4 to 8/10 (median 5).\n\n';
+  const section = (...questions: string[]) => `${body}**Questions this record raises:** ${questions.join(' ')}\n\nThis summary doesn't assess what affected these ratings.`;
+
+  it('passes up to two questions about gaps in the data', () => {
+    const narrative = section('What preceded the 8/10 rating on 2026-03-12? The record doesn\'t show activity or sleep that day.', 'Was anything else different on 2026-03-07, when the tailbone area was first recorded?');
+    expect(extractQuestions(narrative)).toHaveLength(2);
+    expect(checkQuestions(narrative)).toEqual([]);
+  });
+
+  it('fails a third question', () => {
+    const narrative = section('What preceded 2026-03-12?', 'What was logged on 2026-03-07?', 'Why are there no check-ins after 2026-03-10?');
+    expect(checkQuestions(narrative).map((finding) => finding.check)).toContain('question-count');
+  });
+
+  it('fails any question that judges a symptom', () => {
+    for (const question of [
+      'Is the numbness recorded on 2026-03-05 serious?',
+      'Should the tingling first recorded on 2026-03-12 be checked?',
+      'Could this be a sign of nerve involvement?',
+      'Does the sharp pain logged on Mar 7 need further evaluation?',
+      'Is it normal for the rating to reach 8/10 on 2026-03-12?',
+      'What is causing the higher ratings recorded after 2026-03-10?',
+      'Is the numbness in both legs worth getting looked at?',
+      'Does the right-side tightness indicate a problem?'
+    ]) {
+      expect(checkQuestions(section(question)).map((finding) => [finding.check, finding.tier]), question).toContainEqual(['question-judges-symptom', 'fail']);
+    }
+  });
+
+  it('flags a question that names no data, and any question outside the section', () => {
+    expect(checkQuestions(section('Was anything different then?'))[0]).toMatchObject({ check: 'question-not-about-data', tier: 'flag' });
+    expect(checkQuestions(`Is this serious? ${body}`)[0]).toMatchObject({ check: 'question-judges-symptom', tier: 'fail' });
+  });
+
+  it('runs in checkNarrative', () => {
+    const fixture = loadFixtures().find((item) => item.id === 'worrying-notes')!;
+    const report = checkNarrative({ narrative: section('Should the numbness logged on 2026-03-05 be checked?'), expect: fixture.expect, range: fixture.range, inputText: '' });
+    expect(report.failures.map((finding) => finding.check)).toContain('question-judges-symptom');
   });
 });

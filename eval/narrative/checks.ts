@@ -10,6 +10,7 @@ export const MAX_WORDS = MAX_NARRATIVE_WORDS;
 
 export type Finding = {
   check: 'banned-language' | 'length' | 'complete' | 'numbers' | 'laterality' | 'canary' | 'fixture-ban' | 'pre-gate'
+    | 'question-count' | 'question-judges-symptom' | 'question-not-about-data'
     | 'lists-entries' | 'date-not-in-findings' | 'absent-finding' | 'limits-count' | 'word-target' | 'markdown-subset' | 'quotes-note';
   /** fail = hard failure; flag = shown to the human reviewer, not auto-failed. */
   tier: 'fail' | 'flag';
@@ -524,6 +525,62 @@ export function checkQuotesNote(narrative: string, findings: NarrativeFindings):
   return quoted.map((note) => ({ check: 'quotes-note' as const, tier: 'flag' as const, detail: `Quotes the ${note.date} note instead of paraphrasing it.`, excerpt: note.text }));
 }
 
+// ---------------------------------------------------------------------------
+// v3 (2026-10-22): the optional "Questions this record raises" section. At
+// most 2 questions, only about gaps or ambiguities in the data, never
+// judging a symptom (CLAUDE.md, product-owner decision).
+// ---------------------------------------------------------------------------
+
+export const MAX_QUESTIONS = 2;
+export const QUESTIONS_LABEL = /\*\*Questions this record raises:?\*\*:?/i;
+
+/**
+ * Any question that judges a symptom: its seriousness or normality, what it
+ * means or signals, what causes it, or whether it needs care. Hard fail.
+ */
+export const SYMPTOM_JUDGEMENT = /\b(?:serious|seriousness|concerning|concern|worr(?:y|ying|isome)|alarming|dangerous|normal|abnormal|urgent|significant|red flags?|warning signs?|signs? of|symptoms? of|indicat\w*|signal\w*|underlying|mean(?:s|ing)?\s+(?:for|that)|what (?:is|'s) (?:causing|behind|wrong)|caus\w*|(?:need|needs|require|requires|warrant|warrants|merit|merits)\s+(?:\w+\s+){0,2}(?:attention|care|treatment|evaluation|assessment|follow-?up|imaging|scans?|tests?|investigation|review)|should\s+(?:\w+\s+){0,3}(?:checked|seen|evaluated|examined|investigated|assessed|treated|scanned|imaged|looked at|followed up)|(?:get|be|have)\s+(?:it\s+|this\s+|that\s+|them\s+)?(?:checked|seen|looked at|examined)|worth\s+\w+ing|(?:could|might|may|can)\s+(?:this|it|these|that|they)\s+be\b|(?:is|are)\s+(?:this|it|these|that|they)\s+(?:a|an)\s+(?:sign|symptom|problem|issue|condition))\b/i;
+
+/** A data question names what was (or wasn't) recorded. */
+const ABOUT_DATA = /\b(?:record\w*|check-?ins?|logged|log|diary|entr(?:y|ies)|noted|notes?|\d{4}-\d{2}-\d{2}|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\.?\s+\d{1,2})\b/i;
+
+/** The questions in the section, or [] when there is no section. */
+export function extractQuestions(narrative: string) {
+  const match = narrative.match(QUESTIONS_LABEL);
+  if (!match || match.index === undefined) return [];
+  const rest = narrative.slice(match.index + match[0].length).split(/\n\s*\n/)[0];
+  return (rest.match(/[^?\n]*\?/g) ?? [])
+    .map((question) => question.replace(/^\s*[-*•]\s*/, '').trim())
+    .filter(Boolean);
+}
+
+export function checkQuestions(narrative: string): Finding[] {
+  const questions = extractQuestions(narrative);
+  const findings: Finding[] = [];
+  if (questions.length > MAX_QUESTIONS) {
+    findings.push({ check: 'question-count', tier: 'fail', detail: `${questions.length} questions; at most ${MAX_QUESTIONS}.`, excerpt: questions.join(' ') });
+  }
+  for (const question of questions) {
+    if (SYMPTOM_JUDGEMENT.test(question)) {
+      findings.push({ check: 'question-judges-symptom', tier: 'fail', detail: 'A question judges a symptom instead of asking about a gap in the data.', excerpt: question });
+    } else if (!ABOUT_DATA.test(question)) {
+      findings.push({ check: 'question-not-about-data', tier: 'flag', detail: 'A question doesn\'t name what was or wasn\'t recorded.', excerpt: question });
+    }
+  }
+  // A question outside the section is a stray judgement waiting to happen.
+  const outside = narrative.replace(QUESTIONS_LABEL, '\u0000').split('\u0000')[0];
+  const sectionPresent = QUESTIONS_LABEL.test(narrative);
+  const stray = (sectionPresent ? outside : narrative).match(/[^.?!\n]*\?/g) ?? [];
+  for (const question of stray) {
+    findings.push({
+      check: SYMPTOM_JUDGEMENT.test(question) ? 'question-judges-symptom' : 'question-not-about-data',
+      tier: SYMPTOM_JUDGEMENT.test(question) ? 'fail' : 'flag',
+      detail: 'A question outside the "Questions this record raises" section.',
+      excerpt: question.trim()
+    });
+  }
+  return findings;
+}
+
 const OUTSIDE_SUBSET = /\[[^\]]*\]\(|!\[|<\/?[a-z][^>]*>|^\s*#{1,6}\s|^\s*\|.*\|\s*$|`|^\s*\d+[.)]\s/m;
 
 export function checkMarkdownSubset(narrative: string): Finding[] {
@@ -583,6 +640,7 @@ export function checkNarrative(input: {
     ...checkLimitsCount(narrative),
     ...checkWordTarget(narrative),
     ...checkMarkdownSubset(narrative),
+    ...checkQuestions(narrative),
     ...(input.findings
       ? [...checkDatesInFindings(narrative, input.findings), ...checkAbsentFinding(narrative, input.findings), ...checkQuotesNote(narrative, input.findings)]
       : [])

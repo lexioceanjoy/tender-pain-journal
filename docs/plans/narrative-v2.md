@@ -781,13 +781,32 @@ Not addressed, by decision: typical-two-weeks' poor sleep on both 7/10s
 stays below the 3-entry minimum, and rising's second-half framing is
 already the trend finding.
 
+## v3: "Questions this record raises" (2026-10-22, `feat/iteration-c`)
+
+Approved by the product owner as iteration C item 3, with the
+`CLAUDE.md` rule change.
+
+- **Prompt:** an optional last section, "Questions this record raises",
+  only when a finding leaves a real gap or ambiguity in what was recorded.
+  At most 2 questions, each naming its date or label, about what the
+  record does or doesn't show. Never whether a symptom is serious, normal
+  or a sign of something, what it means or causes it, or whether it needs
+  attention. No questions anywhere else.
+- **Eval (`checkQuestions`):**
+  - `question-count` (hard fail): more than 2 questions in the section.
+  - `question-judges-symptom` (hard fail): any question, in the section
+    or not, matching `SYMPTOM_JUDGEMENT` (seriousness, normality,
+    "sign of", "could this be", causes, needs care, "should be checked",
+    "worth getting looked at", and similar).
+  - `question-not-about-data` (flag): a question that names no record,
+    check-in, note or date, or a non-judging question outside the section.
+  - The existing banned-language patterns (`clinical-attention`,
+    `caused-by`, triage) still apply to the section.
+
 ## Later rounds (not started)
 
-- **Optional "questions this record raises" section**, limited to gaps or
-  ambiguities in the data (for example, what else differed on the day a
-  location was first recorded), never whether a symptom needs attention.
-  Needs a `CLAUDE.md` rule change first, since the current no-triage rule
-  and the eval's clinical-attention check would fail it.
+- ~~Optional "questions this record raises" section~~: done in v3
+  (above).
 - **Insight the findings don't yet surface** (from the v2 review):
   sub-period trends and activity patterns in long dense ranges; and
   shared context on the highest-rated check-ins below the 3-entry

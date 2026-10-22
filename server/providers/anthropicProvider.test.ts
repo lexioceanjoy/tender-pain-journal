@@ -46,6 +46,8 @@ describe('anthropicProvider', () => {
     expect(AI_SUMMARY_INSTRUCTIONS).toContain('how they felt emotionally');
     expect(AI_SUMMARY_INSTRUCTIONS).toContain("the person's own view of what a symptom means");
     expect(AI_SUMMARY_INSTRUCTIONS).toContain('Write at most 150 words');
+    expect(AI_SUMMARY_INSTRUCTIONS).toContain('At most 2 questions');
+    expect(AI_SUMMARY_INSTRUCTIONS).toContain('Never ask whether a symptom is serious');
     for (const field of ['sensationsOnSameCheckIns', 'firstRecordedTogether', 'sensationsBySide']) expect(AI_SUMMARY_INSTRUCTIONS).toContain(field);
   });
 
