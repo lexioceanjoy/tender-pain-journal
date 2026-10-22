@@ -803,6 +803,33 @@ Approved by the product owner as iteration C item 3, with the
   - The existing banned-language patterns (`clinical-attention`,
     `caused-by`, triage) still apply to the section.
 
+## v3 results (2026-10-22)
+
+One live run was pre-approved, with one fix-and-re-run allowed. Not
+rescored (product-owner decision); the automatic checks decide.
+
+- **First run** `eval/narrative/results/2026-10-22T16-42-39-v3/`
+  (commit `5d5caa3`): 38 of 39. The one failure, rising #2, was a checker
+  false positive: the numbers check read "2026-03-11 and 6.3/10" as a
+  rating of 11. The narrative itself was correct. Fixed in `checks.ts`
+  with a regression test (the commit recording these results). Rechecked without API calls:
+  39 of 39.
+- **Re-run of record** `eval/narrative/results/2026-10-22T16-45-36-v3-rerun/`
+  (Anthropic `claude-sonnet-5-5`; `run.json` records `071ffea`, the checker fix before these notes were amended into it): **39 of 39** hard
+  checks, 3 of 3 pre-gates. Words: min 29, median 71, max 136. Flags:
+  `quotes-note` ×3 only. No question judged a symptom.
+- **Questions section:** present in 11 of 39 narratives (cycle-context,
+  long-gap and precision-areas in all 3 samples, rising in 2), always 1–2
+  questions about a gap in check-ins, what preceded an outlier, or what
+  happened on a first-recorded date. One (precision-areas #1) asks which
+  location the 2026-03-07 sharp sensation belonged to, a real ambiguity
+  since sensations are recorded per check-in. Some use "- " bullets for
+  2 questions, against the 3-item bullet rule; not flagged.
+- **Coverage findings in use:** medications names ibuprofen with aching
+  (3 of 3) and naproxen with sharp (2 of 2); precision-areas reports the
+  2026-03-07 firsts in one sentence and contrasts left aching (3 of 4)
+  with right tight (2 of 3).
+
 ## Later rounds (not started)
 
 - ~~Optional "questions this record raises" section~~: done in v3

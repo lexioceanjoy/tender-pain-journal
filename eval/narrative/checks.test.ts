@@ -143,6 +143,12 @@ describe('numeric faithfulness', () => {
     expect(checkNumbers('Intensity ranged from 3 to 7 out of 10, with one entry at 5/10.', expectations, range)).toEqual([]);
   });
 
+  it('does not read the end of a date as a rating (v3 run, rising #2)', () => {
+    expect(checkNumbers('Averaging 3/10 from 2026-03-01 to 2026-03-11 and 6.3/10 from 2026-03-13.', expectations, range)).toEqual([]);
+    expect(checkNumbers('Ratings ranged from 3-7/10.', expectations, range)).toEqual([]);
+    expect(checkNumbers('From 2026-03-11 ratings ran 2 to 7/10.', expectations, range)).toHaveLength(1);
+  });
+
   it('fails a rating that was never recorded', () => {
     expect(checkNumbers('One check-in was rated 8/10.', expectations, range)).toHaveLength(1);
     expect(checkNumbers('Ratings ranged from 2 to 7 out of 10.', expectations, range)).toHaveLength(1);

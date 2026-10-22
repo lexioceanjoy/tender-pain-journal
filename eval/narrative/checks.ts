@@ -287,9 +287,12 @@ export function checkComplete(narrative: string): Finding[] {
 // ---------------------------------------------------------------------------
 
 const NUM = String.raw`(\d{1,2}(?:\.\d+)?)`;
+// A leading number is never the tail of a date or another number:
+// "2026-03-11 and 6.3/10" is a date and an average, not "11 and 6.3/10" (v3 run).
+const LEADING = String.raw`(?<![\d\-–\/.:])`;
 const INTENSITY_PATTERNS = [
-  new RegExp(String.raw`\b${NUM}\s*(?:to|–|-|and)\s*${NUM}\s*(?:\/\s*10|out of 10)`, 'gi'),
-  new RegExp(String.raw`\b${NUM}\s*(?:\/\s*10|out of 10)`, 'gi'),
+  new RegExp(String.raw`${LEADING}\b${NUM}\s*(?:to|–|-|and)\s*${NUM}\s*(?:\/\s*10|out of 10)`, 'gi'),
+  new RegExp(String.raw`${LEADING}\b${NUM}\s*(?:\/\s*10|out of 10)`, 'gi'),
   new RegExp(String.raw`\brated(?:\s+(?:at|as))?\s+${NUM}\b`, 'gi'),
   new RegExp(String.raw`\bintensit(?:y|ies)\s+(?:of|at|was|were|reached|between|from)\s+${NUM}(?:\s*(?:to|–|-|and)\s*${NUM})?`, 'gi')
 ];
