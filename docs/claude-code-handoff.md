@@ -18,6 +18,8 @@ This repository is the full source of truth for Tender, a personal, phone-first 
 | GitHub remote | `https://github.com/lexioceanjoy/tender-pain-journal.git` |
 | Published/default branch | `main` at `75e8bb4` or later (`Merge pull request #1 from lexioceanjoy/feat/iteration-b`) |
 | AI prototype branch | `feat/iteration-b`, merged into `main` via PR #1 on 2026-10-15 |
+| Narrative v2 | `feat/narrative-v2`, merged into `main` via PR #8 on 2026-10-22 |
+| Iteration C | `feat/iteration-c` (check-in gaps, narrative v3, README), not yet merged or pushed |
 | Public site | https://tender-pain-journal.vercel.app (Vercel production tracks `main`), passphrase-gated AI narrative — see `CLAUDE.md` rule 5. GitHub Pages is retired. |
 
 `main` is stable, published, and should not be overwritten. Iteration B was merged into `main` via PR #1 on 2026-10-15, and Vercel production deploys from `main`. It has a provider-adapter (OpenAI + Anthropic) and a Vercel demo deployment path. The AI path has been tested with a real Anthropic key, locally and on Vercel, and the narrative quality review was done on 2026-10-22 — see "AI state and next decision" below.
@@ -65,15 +67,19 @@ The provider-adapter migration described in the previous version of this doc is 
 
 **Done (2026-10-15):** the AI path was tested with a real Anthropic key, locally and on Vercel, and `feat/iteration-b` was merged into `main` via PR #1.
 
-**Narrative quality review (done, 2026-10-22):** the fixture-based before/after review ran against the scored 2026-10-20 baseline (`docs/plans/narrative-v2.md`). The product owner decided to ship narrative v2.1/v2.2 with a recorded exception to the coverage rule (−0.36 against a 0.3 limit): usefulness +0.45, readability +0.9, faithfulness unchanged, and every hard check passing (39 of 39, against 26 of 39 at baseline). The work is on `feat/narrative-v2`, not yet merged to `main`.
+**Narrative quality review (done, 2026-10-22):** the fixture-based before/after review ran against the scored 2026-10-20 baseline (`docs/plans/narrative-v2.md`). The product owner decided to ship narrative v2.1/v2.2 with a recorded exception to the coverage rule (−0.36 against a 0.3 limit): usefulness +0.45, readability +0.9, faithfulness unchanged, and every hard check passing (39 of 39, against 26 of 39 at baseline). Merged into `main` via PR #8.
 
 **The passphrase gate stays.** `CLAUDE.md` rule 5 keeps live AI generation behind the demo passphrase (`TENDER_DEMO_PASSPHRASE`); an anonymous visitor only ever sees the labeled sample narrative, never a real model call. Removing or loosening the gate needs its own product decision.
 
 **Narrative v2 (ADR 0010):** pre-gates, server-computed findings as the provider payload, a server-added limits sentence, a 250-word discard, and safe Markdown rendering. Notes are paraphrased and attributed, never quoted; symptoms and emotional state come through, while the person's own view of what a symptom means, reassurance and instructions stay out. Narratives are at most 150 words.
 
-**Next round (not started, needs approval):** closing the coverage gap (per-fixture misses listed in the plan), and an optional "questions this record raises" section limited to gaps or ambiguities in the data, which needs a `CLAUDE.md` rule change first. Live eval runs are billed and need product-owner approval.
+**Iteration C (2026-10-22, `feat/iteration-c`):**
 
-When that review happens: use the fixture-based before/after evaluation on synthetic or non-emergency entries, inspect the output as a clinician-facing factual summary, and obtain product-owner approval before loosening the demo gate.
+- **Check-in gaps** (`docs/plans/check-in-gaps.md`): "Did pain get in the way?" with life areas, made-worse/helped markers on activities, steady/comes-and-goes per region with a "from last time" pre-fill (saved only if Add context was opened), "Pain woke me", and derived "recorded since" / "new in this period" in Insights. Entry and backup schema version 2. None of these fields, stored or derived, is sent to the AI provider. `tests/e2e/check-in-budget.spec.ts` guards the 30-second basic path.
+- **Narrative v3:** findings for medication with sensations, labels first recorded on the same day, and sensation by body side; an optional "Questions this record raises" section (at most 2, only about gaps in the data), allowed by a `CLAUDE.md` rule change; `checkQuestions` fails any question that judges a symptom. The v3 eval passed 39 of 39 after a checker fix (`docs/plans/narrative-v2.md`, "v3 results"). Not rescored.
+- **README** rewritten as the public front page, with phone screenshots in `docs/screenshots/`.
+
+**Next (not started, needs approval):** the typical-two-weeks coverage miss (below the 3-entry minimum, by decision); sub-period trends in dense ranges; notes placed alongside related findings; a human rescore of v3 if the coverage exception is to be retired; any change to the passphrase gate. Live eval runs are billed and need product-owner approval.
 
 ## Constraints and non-goals
 

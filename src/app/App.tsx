@@ -30,7 +30,9 @@ export function App() {
   useEffect(() => {
     listPainEntries().then(async (loaded) => {
       if (loaded.length === 0 && !hasDemoDataDecisionBeenMade()) {
-        const seeded = buildDemoEntries();
+        // Newest first, as listPainEntries() returns them, so Today's
+        // "most recent" and Repeat last use the latest sample on first visit.
+        const seeded = buildDemoEntries().sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
         await Promise.all(seeded.map((entry) => savePainEntry(entry)));
         recordDemoSeeded(seeded.map((entry) => entry.id));
         setDemoEntryIds(seeded.map((entry) => entry.id));
